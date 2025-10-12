@@ -8,14 +8,65 @@ from datetime import datetime
 from gi.repository import Nautilus, GObject
 
 class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
+    """
+    A Nautilus file manager extension that adds developer-focused context menu actions.
+    
+    This extension provides convenient right-click menu options for developers working
+    with files and folders in the GNOME Nautilus file manager. It supports creating
+    markdown files, opening files/folders in VS Code, and executing shell scripts.
+    
+    Inherits from:
+        GObject.GObject: Base class for GObject-based objects
+        Nautilus.MenuProvider: Interface for providing custom menu items in Nautilus
+    
+    Class Constants:
+        VSCODE_PATH (str): Path to the VS Code executable
+        TEXT_FILE_EXTENSIONS (tuple): File extensions considered as text files
+    
+    Menu Actions Provided:
+        - New Markdown: Creates timestamped markdown files
+        - Open in VS Code: Opens files/folders in Visual Studio Code
+        - Run Script: Executes shell scripts in a new terminal
+    """
     VSCODE_PATH = '/usr/bin/code'
     TEXT_FILE_EXTENSIONS = ('.txt', '.md', '.py', '.js', '.html', '.css', '.json', '.xml', '.yml', '.yaml', '.ini', '.cfg', '.conf')
     
     def __init__(self):
+        """
+        Initialize the Nautilus extension.
+        
+        Calls the parent class constructor to properly initialize the GObject
+        and Nautilus MenuProvider interfaces. This method is called automatically
+        when Nautilus loads the extension.
+        """
         super().__init__()
 
     def get_file_items(self, files):
-        """Add menu item when files/folders are selected"""
+        """
+        Add context menu items when files or folders are selected.
+        
+        This method is called by Nautilus when the user right-clicks on selected
+        files or folders. It analyzes the selection and provides appropriate menu
+        items based on the file type and context.
+        
+        Args:
+            files (list): List of Nautilus.FileInfo objects representing selected files/folders.
+                         Only processes single selections (len(files) == 1).
+        
+        Returns:
+            list: List of Nautilus.MenuItem objects to display in the context menu.
+                  Returns empty list if multiple files are selected.
+        
+        Menu Items Added:
+            - New Markdown: Always available for any single selection
+            - Run Script: Available for .sh files
+            - Open in VS Code: Available for directories and text files
+        
+        File Type Detection:
+            Uses dual detection strategy:
+            1. MIME type analysis via mimetypes.guess_type()
+            2. File extension matching against TEXT_FILE_EXTENSIONS
+        """
         if len(files) != 1:
             return []
         
@@ -71,7 +122,24 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         return items
 
     def get_background_items(self, current_folder):
-        """Add menu item when right-clicking on background"""
+        """
+        Add context menu items when right-clicking on empty space in Nautilus.
+        
+        This method is called by Nautilus when the user right-clicks on empty space
+        within a folder view, providing context menu options relevant to the current
+        directory without any specific file selection.
+        
+        Args:
+            current_folder (Nautilus.FileInfo): Object representing the current folder
+                                               being viewed in Nautilus.
+        
+        Returns:
+            list: List of Nautilus.MenuItem objects to display in the context menu.
+        
+        Menu Items Added:
+            - New Markdown: Creates a new timestamped markdown file in current folder
+            - Open in VS Code: Opens the current folder in Visual Studio Code
+        """
         items = []
         
         # New Markdown file option
@@ -95,7 +163,31 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         return items
 
     def new_markdown_from_selection(self, menu, selected_item):
-        """Create a new timestamped markdown file based on selection and open it in VS Code"""
+        """
+        Create a new timestamped markdown file based on the selected item and open it in VS Code.
+        
+        This method handles the "New Markdown" action when triggered from a file or folder
+        selection. It determines the appropriate target directory based on the selection
+        type and creates a new markdown file with a timestamp-based filename.
+        
+        Args:
+            menu (Nautilus.MenuItem): The menu item that triggered this action (unused).
+            selected_item (Nautilus.FileInfo): The selected file or folder that provides
+                                              context for where to create the new file.
+        
+        Behavior:
+            - If a folder is selected: Creates the markdown file inside that folder
+            - If a file is selected: Creates the markdown file in the same directory as the file
+            - Generates filename using format: YYYY-MM-DD--HH-MM-SS.md
+            - Creates file with minimal content (two newlines)
+            - Automatically opens the new file in VS Code
+        
+        File Naming:
+            Uses timestamp format with double dashes: 2025-10-12--14-30-45.md
+        
+        Error Handling:
+            Prints error messages to console if file creation or VS Code launch fails.
+        """
         if selected_item.get_uri().startswith('file://'):
             selected_path = urllib.parse.unquote(selected_item.get_uri()[7:])
             
@@ -123,7 +215,29 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
                 print(f'Error creating markdown file: {e}')
 
     def new_markdown(self, menu, current_folder):
-        """Create a new timestamped markdown file and open it in VS Code"""
+        """
+        Create a new timestamped markdown file in the current folder and open it in VS Code.
+        
+        This method handles the "New Markdown" action when triggered from the background
+        context menu (right-clicking on empty space). It creates a new markdown file
+        directly in the current folder being viewed.
+        
+        Args:
+            menu (Nautilus.MenuItem): The menu item that triggered this action (unused).
+            current_folder (Nautilus.FileInfo): The folder where the new file should be created.
+        
+        Behavior:
+            - Creates markdown file in the current folder
+            - Generates filename using format: YYYY-MM-DD--HH-MM-SS.md
+            - Creates file with minimal content (two newlines)
+            - Automatically opens the new file in VS Code
+        
+        File Naming:
+            Uses timestamp format with double dashes: 2025-10-12--14-30-45.md
+        
+        Error Handling:
+            Prints error messages to console if file creation or VS Code launch fails.
+        """
         if current_folder.get_uri().startswith('file://'):
             folder_path = urllib.parse.unquote(current_folder.get_uri()[7:])
             
@@ -143,7 +257,34 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
                 print(f'Error creating markdown file: {e}')
 
     def run_script(self, menu, file):
-        """Run the selected shell script in a new terminal"""
+        """
+        Execute the selected shell script in a new terminal window.
+        
+        This method handles the "Run Script" action for .sh files. It opens a new
+        gnome-terminal window, navigates to the script's directory, and executes
+        the script while providing user feedback and keeping the terminal open
+        for result inspection.
+        
+        Args:
+            menu (Nautilus.MenuItem): The menu item that triggered this action (unused).
+            file (Nautilus.FileInfo): The shell script file to execute.
+        
+        Behavior:
+            - Opens a new gnome-terminal window
+            - Sets working directory to the script's parent directory
+            - Displays script name and directory before execution
+            - Executes the script using bash
+            - Shows completion message and waits for user input before closing
+            - Keeps terminal open for result inspection
+        
+        Terminal Command Structure:
+            Uses gnome-terminal with --working-directory and -- separator for proper
+            command isolation and directory context.
+        
+        Security Note:
+            Executes scripts directly with bash - users should verify script content
+            before execution as this provides no sandboxing.
+        """
         if file.get_uri().startswith('file://'):
             script_path = urllib.parse.unquote(file.get_uri()[7:])
             script_dir = os.path.dirname(script_path)
@@ -161,7 +302,32 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
             subprocess.Popen(command)
 
     def open_in_vscode(self, menu, file):
-        """Open the selected file/folder in VS Code"""
+        """
+        Open the selected file or folder in Visual Studio Code.
+        
+        This method handles the "Open in VS Code" action for both files and folders.
+        It launches VS Code with the selected item as the target, allowing developers
+        to quickly open their files or projects in their preferred editor.
+        
+        Args:
+            menu (Nautilus.MenuItem): The menu item that triggered this action (unused).
+            file (Nautilus.FileInfo): The file or folder to open in VS Code.
+        
+        Behavior:
+            - Launches VS Code using the path specified in VSCODE_PATH class constant
+            - Passes the file/folder path as an argument to VS Code
+            - Works with both individual files and entire directories
+            - Uses subprocess.Popen for non-blocking execution
+        
+        URI Handling:
+            - Validates that the URI starts with 'file://' for local files
+            - Uses urllib.parse.unquote to properly decode the file path
+            - Handles file paths with spaces and special characters
+        
+        Integration:
+            VS Code path is configurable via the VSCODE_PATH class constant,
+            defaulting to '/usr/bin/code' for standard Linux installations.
+        """
         if file.get_uri().startswith('file://'):
             path = urllib.parse.unquote(file.get_uri()[7:])
             subprocess.Popen([self.VSCODE_PATH, path])
