@@ -8,6 +8,9 @@ from datetime import datetime
 from gi.repository import Nautilus, GObject
 
 class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
+    VSCODE_PATH = '/usr/bin/code'
+    TEXT_FILE_EXTENSIONS = ('.txt', '.md', '.py', '.js', '.html', '.css', '.json', '.xml', '.yml', '.yaml', '.ini', '.cfg', '.conf')
+    
     def __init__(self):
         super().__init__()
 
@@ -54,7 +57,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
             
             # Consider it a text file if mimetype starts with 'text/' or if it's a known text extension
             is_text_file = (mimetype and mimetype.startswith('text/')) or \
-                          filename.endswith(('.txt', '.md', '.py', '.js', '.html', '.css', '.json', '.xml', '.yml', '.yaml', '.ini', '.cfg', '.conf'))
+                          filename.endswith(self.TEXT_FILE_EXTENSIONS)
             
             if is_text_file:
                 vscode_item = Nautilus.MenuItem(
@@ -115,7 +118,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
                     f.write(f'\n\n')
                 
                 # Open the new file in VS Code
-                subprocess.Popen(['/usr/bin/code', file_path])
+                subprocess.Popen([self.VSCODE_PATH, file_path])
             except Exception as e:
                 print(f'Error creating markdown file: {e}')
 
@@ -135,7 +138,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
                     f.write(f'\n\n')
                 
                 # Open the new file in VS Code
-                subprocess.Popen(['/usr/bin/code', file_path])
+                subprocess.Popen([self.VSCODE_PATH, file_path])
             except Exception as e:
                 print(f'Error creating markdown file: {e}')
 
@@ -161,4 +164,4 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         """Open the selected file/folder in VS Code"""
         if file.get_uri().startswith('file://'):
             path = urllib.parse.unquote(file.get_uri()[7:])
-            subprocess.Popen(['/usr/bin/code', path])
+            subprocess.Popen([self.VSCODE_PATH, path])
