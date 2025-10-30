@@ -13,19 +13,19 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
     
     This extension provides convenient right-click menu options for developers working
     with files and folders in the GNOME Nautilus file manager. It supports creating
-    markdown files, opening files/folders in VS Code, and executing shell scripts.
+    markdown files, opening files/folders in VSCode, and executing shell scripts.
     
     Inherits from:
         GObject.GObject: Base class for GObject-based objects
         Nautilus.MenuProvider: Interface for providing custom menu items in Nautilus
     
     Class Constants:
-        VSCODE_PATH (str): Path to the VS Code executable
+        VSCODE_PATH (str): Path to the VSCode executable
         TEXT_FILE_EXTENSIONS (tuple): File extensions considered as text files
     
     Menu Actions Provided:
         - New Markdown: Creates timestamped markdown files
-        - Open in VS Code: Opens files/folders in Visual Studio Code
+        - Open in VSCode: Opens files/folders in Visual Studio Code
         - Run Script: Executes shell scripts in a new terminal
     """
     VSCODE_PATH = '/usr/bin/code'
@@ -60,7 +60,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         Menu Items Added:
             - New Markdown: Always available for any single selection
             - Run Script: Available for .sh files
-            - Open in VS Code: Available for directories and text files
+            - Open in VSCode: Available for directories and text files
         
         File Type Detection:
             Uses dual detection strategy:
@@ -77,7 +77,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         new_markdown_item = Nautilus.MenuItem(
             name='AddNautilusMenuItems::new_markdown_from_selection',
             label='New Markdown',
-            tip='Create a new timestamped markdown file and open in VS Code'
+            tip='Create a new timestamped markdown file and open in VSCode'
         )
         new_markdown_item.connect('activate', self.new_markdown_from_selection, file)
         items.append(new_markdown_item)
@@ -96,7 +96,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         if file.is_directory():
             vscode_item = Nautilus.MenuItem(
                 name='AddNautilusMenuItems::open_in_vscode',
-                label='Open in VS Code',
+                label='Open in VSCode',
                 tip='Open this folder in Visual Studio Code'
             )
             vscode_item.connect('activate', self.open_in_vscode, file)
@@ -113,7 +113,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
             if is_text_file:
                 vscode_item = Nautilus.MenuItem(
                     name='AddNautilusMenuItems::open_file_in_vscode',
-                    label='Open in VS Code',
+                    label='Open in VSCode',
                     tip='Open this file in Visual Studio Code'
                 )
                 vscode_item.connect('activate', self.open_in_vscode, file)
@@ -138,7 +138,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         
         Menu Items Added:
             - New Markdown: Creates a new timestamped markdown file in current folder
-            - Open in VS Code: Opens the current folder in Visual Studio Code
+            - Open in VSCode: Opens the current folder in Visual Studio Code
         """
         items = []
         
@@ -146,15 +146,15 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         new_markdown_item = Nautilus.MenuItem(
             name='AddNautilusMenuItems::new_markdown',
             label='New Markdown',
-            tip='Create a new timestamped markdown file and open in VS Code'
+            tip='Create a new timestamped markdown file and open in VSCode'
         )
         new_markdown_item.connect('activate', self.new_markdown, current_folder)
         items.append(new_markdown_item)
         
-        # Open current folder in VS Code option
+        # Open current folder in VSCode option
         vscode_item = Nautilus.MenuItem(
             name='AddNautilusMenuItems::open_current_in_vscode',
-            label='Open in VS Code',
+            label='Open in VSCode',
             tip='Open current folder in Visual Studio Code'
         )
         vscode_item.connect('activate', self.open_in_vscode, current_folder)
@@ -164,7 +164,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
 
     def new_markdown_from_selection(self, menu, selected_item):
         """
-        Create a new timestamped markdown file based on the selected item and open it in VS Code.
+        Create a new timestamped markdown file based on the selected item and open it in VSCode.
         
         This method handles the "New Markdown" action when triggered from a file or folder
         selection. It determines the appropriate target directory based on the selection
@@ -180,13 +180,13 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
             - If a file is selected: Creates the markdown file in the same directory as the file
             - Generates filename using format: YYYY-MM-DD--HH-MM-SS.md
             - Creates file with minimal content (two newlines)
-            - Automatically opens the new file in VS Code
+            - Automatically opens the new file in VSCode
         
         File Naming:
             Uses timestamp format with double dashes: 2025-10-12--14-30-45.md
         
         Error Handling:
-            Prints error messages to console if file creation or VS Code launch fails.
+            Prints error messages to console if file creation or VSCode launch fails.
         """
         if selected_item.get_uri().startswith('file://'):
             selected_path = urllib.parse.unquote(selected_item.get_uri()[7:])
@@ -209,14 +209,14 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
                 with open(file_path, 'w') as f:
                     f.write(f'\n\n')
                 
-                # Open the new file in VS Code
+                # Open the new file in VSCode
                 subprocess.Popen([self.VSCODE_PATH, file_path])
             except Exception as e:
                 print(f'Error creating markdown file: {e}')
 
     def new_markdown(self, menu, current_folder):
         """
-        Create a new timestamped markdown file in the current folder and open it in VS Code.
+        Create a new timestamped markdown file in the current folder and open it in VSCode.
         
         This method handles the "New Markdown" action when triggered from the background
         context menu (right-clicking on empty space). It creates a new markdown file
@@ -230,13 +230,13 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
             - Creates markdown file in the current folder
             - Generates filename using format: YYYY-MM-DD--HH-MM-SS.md
             - Creates file with minimal content (two newlines)
-            - Automatically opens the new file in VS Code
+            - Automatically opens the new file in VSCode
         
         File Naming:
             Uses timestamp format with double dashes: 2025-10-12--14-30-45.md
         
         Error Handling:
-            Prints error messages to console if file creation or VS Code launch fails.
+            Prints error messages to console if file creation or VSCode launch fails.
         """
         if current_folder.get_uri().startswith('file://'):
             folder_path = urllib.parse.unquote(current_folder.get_uri()[7:])
@@ -251,7 +251,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
                 with open(file_path, 'w') as f:
                     f.write(f'\n\n')
                 
-                # Open the new file in VS Code
+                # Open the new file in VSCode
                 subprocess.Popen([self.VSCODE_PATH, file_path])
             except Exception as e:
                 print(f'Error creating markdown file: {e}')
@@ -305,17 +305,17 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         """
         Open the selected file or folder in Visual Studio Code.
         
-        This method handles the "Open in VS Code" action for both files and folders.
-        It launches VS Code with the selected item as the target, allowing developers
+        This method handles the "Open in VSCode" action for both files and folders.
+        It launches VSCode with the selected item as the target, allowing developers
         to quickly open their files or projects in their preferred editor.
         
         Args:
             menu (Nautilus.MenuItem): The menu item that triggered this action (unused).
-            file (Nautilus.FileInfo): The file or folder to open in VS Code.
+            file (Nautilus.FileInfo): The file or folder to open in VSCode.
         
         Behavior:
-            - Launches VS Code using the path specified in VSCODE_PATH class constant
-            - Passes the file/folder path as an argument to VS Code
+            - Launches VSCode using the path specified in VSCODE_PATH class constant
+            - Passes the file/folder path as an argument to VSCode
             - Works with both individual files and entire directories
             - Uses subprocess.Popen for non-blocking execution
         
@@ -325,7 +325,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
             - Handles file paths with spaces and special characters
         
         Integration:
-            VS Code path is configurable via the VSCODE_PATH class constant,
+            VSCode path is configurable via the VSCODE_PATH class constant,
             defaulting to '/usr/bin/code' for standard Linux installations.
         """
         if file.get_uri().startswith('file://'):
