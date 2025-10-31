@@ -2,6 +2,10 @@
 
 A developer-focused extension for Nautilus file manager that adds convenient context menu actions to streamline your workflow. Coral enhances Nautilus with productivity tools specifically designed for software developers.
 
+Coral consists only of the three menu items added to the Nautilus right-click popup menu as shown in the image below which are: New Markdown, Open in VSCode, and Open in Terminal.
+
+![Menu Screenshot](menu-screenshot.png)
+
 ## Overview
 
 Coral seamlessly integrates with Nautilus to provide quick access to common developer tasks directly from the file manager's context menu. No more switching between applications or remembering complex terminal commands - everything you need is just a right-click away.
