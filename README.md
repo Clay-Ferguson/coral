@@ -2,7 +2,7 @@
 
 A developer-focused extension for Nautilus file manager that adds convenient context menu actions to streamline your workflow. Coral enhances Nautilus with productivity tools specifically designed for software developers.
 
-Coral consists only of the three menu items added to the Nautilus right-click popup menu as shown in the image below which are: New Markdown, Open in VSCode, and Open in Terminal.
+Coral consists only of the three menu items added to the Nautilus right-click popup menu as shown in the image below which are: New Markdown, Open in VSCode, and Run Script. The Coral Nautilus extension adds the ability to create a new markdown file in any folder, using a single mouse click (a nice productivity aid), a way to open VSCode projects with a single click, as well as the ability to run shell scripts with a single click. All of these tasks are very common for developers, and it's nice to have these embedded on a menu for a single click right inside Nautilus. So the purpose of Coral is to simply make these three actions much easier to do. 
 
 ![Menu Screenshot](menu-screenshot.png)
 
@@ -41,6 +41,8 @@ Executes shell scripts in a new terminal window, complete with proper directory 
 - **Correct working directory:** Automatically sets the script's directory as the working directory
 - **Interactive execution:** Terminal remains open after execution for reviewing output
 - **User-friendly display:** Shows script name, directory, and completion status
+
+Nautilus does already have the ability to run script files, but using this menu makes it much easier because it takes only a single click.
 
 ## Installation
 
