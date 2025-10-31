@@ -14,6 +14,7 @@ Coral seamlessly integrates with Nautilus to provide quick access to common deve
 Creates a new timestamped Markdown file and automatically opens it in VS Code. Perfect for quick note-taking, documentation, or capturing ideas on the fly.
 
 - **Smart placement:** File is created in the most logical location based on where you right-click
+- **Friendly prompt:** Uses `zenity` to let you confirm or customize the filename before creation
 - **Automatic timestamping:** Files are named with the current date and time (YYYY-MM-DD--HH-MM-SS format)
 - **Instant editing:** Opens immediately in VS Code for seamless workflow
 
@@ -73,6 +74,7 @@ Right-click on any shell script and select "Run Script" to execute it with full 
 - Nautilus file manager
 - Visual Studio Code
 - Python 3 with Nautilus bindings (automatically installed by setup script)
+- zenity (for graphical filename prompts)
 
 ## Why Coral?
 

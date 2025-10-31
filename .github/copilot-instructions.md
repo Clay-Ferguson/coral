@@ -1,99 +1,27 @@
-# Coral - AI Development Guide
+# Coral - Copilot Brief
 
-## Project Overview
-Coral is a Nautilus file manager extension that provides developer-focused context menu actions. It's a single-file Python extension using GObject introspection to integrate with GNOME's Nautilus file manager.
+## Essentials
+- Single-file Nautilus extension in `coral_action.py`; class `CoralMenuProvider` derives from `GObject.GObject` + `Nautilus.MenuProvider` and registers three context menu items.
+- `setup.sh` installs to `~/.local/share/nautilus-python/extensions/`; rerun after any code change and restart Nautilus with `nautilus -q`.
+- Core constants: `VSCODE_PATH` (default `/usr/bin/code`) and `TEXT_FILE_EXTENSIONS` gate VS Code support and text detection.
 
-## Architecture
+## Menu Actions
+- **New Markdown** appears everywhere. Prompts via `zenity --entry` with a timestamped default (`%Y-%m-%d--%H-%M-%S.md`), creates the file under the right-click target, and launches the chosen editor with `subprocess.Popen([self.VSCODE_PATH, path])`.
+- **Open in VS Code** shows on folders, text-like files, or background. Resolves URIs, filters by MIME type + extension tuple, and opens VS Code in the correct mode (folder workspace vs single file).
+- **Run Script** only surfaces for `.sh` files. Spawns `gnome-terminal` with `--working-directory` and wraps the script path in `bash -c '"{script}"; echo; read -n 1 -s -r -p "Press any key"'` to keep the terminal open.
 
-### Core Components
-- **`coral_action.py`**: Single main file implementing the Nautilus extension
-- **`setup.sh`**: Installation script that copies the extension to `~/.local/share/nautilus-python/extensions/`
-- **Extension Pattern**: Uses GObject inheritance with `Nautilus.MenuProvider` interface
+## Patterns & Conventions
+- Always validate file URIs: require `file://`, strip prefix, decode with `urllib.parse.unquote`, then operate on the filesystem path.
+- Use both `mimetypes.guess_type()` and `TEXT_FILE_EXTENSIONS` to classify text files; keep the tuple updated if you enable new formats.
+- Timestamped markdown naming uses double dashes between date/time segments; respect this when generating filenames.
+- Minimal error dialogs: wrap risky IO in try/except and log via `print()` for journalctl inspection instead of UI prompts.
 
-### Key Architecture Decisions
-- **Single file design**: All functionality in one Python file for simplicity
-- **Class constants for configuration**: `VSCODE_PATH` and `TEXT_FILE_EXTENSIONS` defined as class variables for easy modification
-- **Dual context support**: Implements both `get_file_items()` (selection-based) and `get_background_items()` (empty space) menu providers
+## Workflows
+- Install/test loop: `./setup.sh`, `nautilus -q`, then open a new Nautilus window pointed at a sample directory.
+- Debug by tailing logs: `journalctl -f | grep nautilus`. Add temporary prints inside handlers when Nautilus swallows tracebacks.
+- Use diverse fixtures when verifying changes: folders, empty-space background, `.sh` scripts, plain text, non-text binaries to confirm menu visibility logic.
 
-## Development Patterns
-
-### Menu Item Creation Pattern
-```python
-item = Nautilus.MenuItem(
-    name='AddNautilusMenuItems::unique_action_name',
-    label='Display Name',
-    tip='Tooltip description'
-)
-item.connect('activate', self.handler_method, context_object)
-```
-
-### File Type Detection Strategy
-Uses **dual detection**: MIME types (`mimetypes.guess_type()`) + file extension fallback via `TEXT_FILE_EXTENSIONS` tuple. This ensures reliability across different file systems and configurations.
-
-### URI Handling Convention
-All file operations follow this pattern:
-1. Check `file.get_uri().startswith('file://')`
-2. Decode with `urllib.parse.unquote(uri[7:])`
-3. Use decoded path for file operations
-
-## Critical Workflows
-
-### Installation & Testing
-```bash
-./setup.sh                 # Install extension
-nautilus -q                # Restart Nautilus
-nautilus /path/to/test     # Test in new window
-```
-
-### Development Iteration
-After code changes:
-1. Run `./setup.sh` to copy updated file
-2. Restart Nautilus with `nautilus -q`
-3. Test context menus on various file types
-
-### Debugging
-- Extension errors appear in system logs: `journalctl -f | grep nautilus`
-- Python errors are often silent in Nautilus - add `print()` statements for debugging
-- Test different file types: folders, `.sh` scripts, text files, unknown files
-
-## Project-Specific Conventions
-
-### Timestamp Format
-Uses `datetime.now().strftime('%Y-%m-%d--%H-%M-%S')` for markdown file naming (note double dashes)
-
-### Terminal Command Construction
-For shell script execution, uses `gnome-terminal` with specific pattern:
-- `--working-directory=` for correct context
-- `--` separator before bash commands
-- Interactive prompt to keep terminal open
-
-### Error Handling
-Minimal error handling by design - uses try/catch around file operations but doesn't show user dialogs (following Nautilus extension best practices)
-
-## Integration Points
-
-### External Dependencies
-- **Nautilus Python bindings**: `python3-nautilus` package required
-- **GObject Introspection**: `gi.repository.Nautilus`, `gi.repository.GObject`
-- **VS Code**: Hardcoded path `/usr/bin/code` (configurable via `VSCODE_PATH`)
-- **gnome-terminal**: Used for script execution
-
-### File System Integration
-- Installs to: `~/.local/share/nautilus-python/extensions/`
-- Creates files with system umask permissions
-- Respects Nautilus file URI scheme
-
-## Extension Points
-
-### Adding New File Types
-Update `TEXT_FILE_EXTENSIONS` tuple in class definition. The extension uses both MIME type detection and extension matching for maximum compatibility.
-
-### Adding New Actions
-Follow the established pattern in `get_file_items()` or `get_background_items()`:
-1. Create conditional logic for when action should appear
-2. Create `Nautilus.MenuItem` with unique name
-3. Connect to handler method
-4. Add to items list
-
-### Modifying External Tool Paths
-Update class constants (`VSCODE_PATH`) rather than hardcoding paths in methods.
+## Extension Tips
+- Add actions inside `get_file_items()` (selection) or `get_background_items()` (empty space). Ensure unique `MenuItem` names under the `AddNautilusMenuItems::` namespace.
+- Update `VSCODE_PATH` or replace VS Code invocations if a different editor is required; keep the central constant to avoid hardcoding.
+- Include `zenity` in dependency checks when packaging or documenting; New Markdown depends on it for the filename prompt.
