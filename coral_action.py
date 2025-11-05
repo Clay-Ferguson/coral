@@ -560,7 +560,9 @@ echo "" >> "{results_file}"
 # Search non-PDF files
 find "{folder_path}" -type f ! -name "*.pdf" -print0 2>/dev/null | xargs -0 grep -l -i "{search_term}" 2>/dev/null | while read -r file; do
     echo "Found in: $file"
-    echo "- \`$file\`" >> "{results_file}"
+    # URL encode the file path for the link
+    encoded_file=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$file', safe='/'))")
+    echo "- [$file](file://$encoded_file)" >> "{results_file}"
 done
 
 echo ""
@@ -574,7 +576,9 @@ if command -v pdftotext &> /dev/null; then
     find "{folder_path}" -type f -name "*.pdf" -print0 2>/dev/null | while IFS= read -r -d '' pdf_file; do
         if pdftotext "$pdf_file" - 2>/dev/null | grep -q -i "{search_term}"; then
             echo "Found in PDF: $pdf_file"
-            echo "- \`$pdf_file\`" >> "{results_file}"
+            # URL encode the file path for the link
+            encoded_file=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$pdf_file', safe='/'))")
+            echo "- [$pdf_file](file://$encoded_file)" >> "{results_file}"
         fi
     done
 else
