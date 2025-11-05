@@ -59,6 +59,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         
         Menu Items Added:
             - New Markdown: Always available for any single selection
+            - Search: Available for directories to perform recursive text search
             - Run Script: Available for .sh files
             - Open in VSCode: Available for directories and text files
         
@@ -81,6 +82,16 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         )
         new_markdown_item.connect('activate', self.new_markdown_from_selection, file)
         items.append(new_markdown_item)
+        
+        # Add Search option for directories
+        if file.is_directory():
+            search_item = Nautilus.MenuItem(
+                name='AddNautilusMenuItems::search_folder',
+                label='Search',
+                tip='Recursively search for text in files (including PDFs)'
+            )
+            search_item.connect('activate', self.search_folder, file)
+            items.append(search_item)
         
         # Check if it's a shell script
         if not file.is_directory() and file.get_name().endswith('.sh'):
@@ -138,6 +149,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         
         Menu Items Added:
             - New Markdown: Creates a new timestamped markdown file in current folder
+            - Search: Recursively search for text in the current folder
             - Open in VSCode: Opens the current folder in Visual Studio Code
         """
         items = []
@@ -150,6 +162,15 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         )
         new_markdown_item.connect('activate', self.new_markdown, current_folder)
         items.append(new_markdown_item)
+        
+        # Search option for current folder
+        search_item = Nautilus.MenuItem(
+            name='AddNautilusMenuItems::search_current_folder',
+            label='Search',
+            tip='Recursively search for text in files (including PDFs)'
+        )
+        search_item.connect('activate', self.search_folder, current_folder)
+        items.append(search_item)
         
         # Open current folder in VSCode option
         vscode_item = Nautilus.MenuItem(
@@ -411,3 +432,179 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         if file.get_uri().startswith('file://'):
             path = urllib.parse.unquote(file.get_uri()[7:])
             subprocess.Popen([self.VSCODE_PATH, path])
+
+    def search_folder(self, menu, folder):
+        """
+        Recursively search for text in files within the selected folder.
+        
+        This method handles the "Search" action for folders. It prompts the user
+        for a search term using zenity, then searches all files recursively including
+        PDF files (using pdftotext), and displays the results in a markdown file
+        opened in VSCode.
+        
+        Args:
+            menu (Nautilus.MenuItem): The menu item that triggered this action (unused).
+            folder (Nautilus.FileInfo): The folder to search within.
+        
+        Behavior:
+            - Prompts user for search term via zenity dialog
+            - Searches regular files using grep
+            - Searches PDF files using pdftotext + grep
+            - Writes results to coral-search.md in system temp folder
+            - Opens results in gnome-terminal showing search progress
+            - Prompts user to press Enter to open results in VSCode
+        
+        Requirements:
+            - zenity: For search term input dialog
+            - pdftotext (poppler-utils): For PDF file searching
+            - grep: For text searching
+        
+        Error Handling:
+            Checks for pdftotext availability and prints installation command if missing.
+        """
+        if not folder.get_uri().startswith('file://'):
+            return
+            
+        folder_path = urllib.parse.unquote(folder.get_uri()[7:])
+        
+        # If it's a file selection, use the parent directory
+        if not folder.is_directory():
+            folder_path = os.path.dirname(folder_path)
+        
+        # Prompt for search term using zenity
+        argv = [
+            'zenity',
+            '--entry',
+            '--title=Search Files',
+            '--text=Enter search term:',
+            '--modal',
+        ]
+        
+        try:
+            pid, _, stdout_fd, _ = GLib.spawn_async(
+                argv,
+                flags=GLib.SpawnFlags.SEARCH_PATH | GLib.SpawnFlags.DO_NOT_REAP_CHILD,
+                standard_output=True,
+                standard_error=False,
+            )
+        except GLib.GError as exc:
+            print(f'Failed to launch zenity: {exc}')
+            return
+        
+        GLib.child_watch_add(
+            GLib.PRIORITY_DEFAULT,
+            pid,
+            self._on_search_term_entered,
+            (stdout_fd, folder_path),
+        )
+    
+    def _on_search_term_entered(self, pid, status, data):
+        """Process search term once zenity dialog closes."""
+        stdout_fd, folder_path = data
+        
+        search_term = ''
+        try:
+            with os.fdopen(stdout_fd, 'r', encoding='utf-8', errors='ignore') as stdout:
+                search_term = stdout.read().strip()
+        except Exception as exc:
+            print(f'Error reading zenity output: {exc}')
+        
+        GLib.spawn_close_pid(pid)
+        
+        if not (os.WIFEXITED(status) and os.WEXITSTATUS(status) == 0) or not search_term:
+            # User cancelled or provided empty search term
+            return
+        
+        # Create the search script
+        self._execute_search(folder_path, search_term)
+    
+    def _execute_search(self, folder_path, search_term):
+        """Execute the search command in a terminal."""
+        import tempfile
+        
+        # Path to the results file
+        temp_dir = tempfile.gettempdir()
+        results_file = os.path.join(temp_dir, 'coral-search.md')
+        
+        # Create a search script that will be executed in the terminal
+        script_content = f'''#!/bin/bash
+echo "Searching for: {search_term}"
+echo "In folder: {folder_path}"
+echo ""
+echo "# Search Results" > "{results_file}"
+echo "" >> "{results_file}"
+echo "**Search term:** {search_term}" >> "{results_file}"
+echo "" >> "{results_file}"
+echo "**Search location:** {folder_path}" >> "{results_file}"
+echo "" >> "{results_file}"
+echo "**Date:** $(date)" >> "{results_file}"
+echo "" >> "{results_file}"
+echo "---" >> "{results_file}"
+echo "" >> "{results_file}"
+
+# Check if pdftotext is available
+if ! command -v pdftotext &> /dev/null; then
+    echo "WARNING: pdftotext not found. PDF files will not be searched."
+    echo "To install pdftotext, run: sudo apt install poppler-utils"
+    echo ""
+    echo "## Note" >> "{results_file}"
+    echo "pdftotext is not installed. PDF files were not searched." >> "{results_file}"
+    echo "To enable PDF searching, run: \`sudo apt install poppler-utils\`" >> "{results_file}"
+    echo "" >> "{results_file}"
+fi
+
+echo "Searching regular files..."
+echo "## Regular Files" >> "{results_file}"
+echo "" >> "{results_file}"
+
+# Search non-PDF files
+find "{folder_path}" -type f ! -name "*.pdf" -print0 2>/dev/null | xargs -0 grep -l -i "{search_term}" 2>/dev/null | while read -r file; do
+    echo "Found in: $file"
+    echo "- \`$file\`" >> "{results_file}"
+done
+
+echo ""
+echo "Searching PDF files..."
+echo "" >> "{results_file}"
+echo "## PDF Files" >> "{results_file}"
+echo "" >> "{results_file}"
+
+# Search PDF files if pdftotext is available
+if command -v pdftotext &> /dev/null; then
+    find "{folder_path}" -type f -name "*.pdf" -print0 2>/dev/null | while IFS= read -r -d '' pdf_file; do
+        if pdftotext "$pdf_file" - 2>/dev/null | grep -q -i "{search_term}"; then
+            echo "Found in PDF: $pdf_file"
+            echo "- \`$pdf_file\`" >> "{results_file}"
+        fi
+    done
+else
+    echo "(Skipping PDF files - pdftotext not installed)"
+fi
+
+echo ""
+echo "Search complete!"
+echo ""
+echo "Results written to: {results_file}"
+echo ""
+read -p "Press ENTER to open results in VSCode..."
+
+# Open results in VSCode
+{self.VSCODE_PATH} "{results_file}"
+'''
+        
+        # Write the script to a temporary file
+        script_file = os.path.join(tempfile.gettempdir(), 'coral-search-script.sh')
+        try:
+            with open(script_file, 'w') as f:
+                f.write(script_content)
+            os.chmod(script_file, 0o755)
+            
+            # Execute the script in a new terminal
+            command = [
+                'gnome-terminal',
+                '--',
+                'bash', script_file
+            ]
+            subprocess.Popen(command)
+        except Exception as e:
+            print(f'Error executing search: {e}')
