@@ -522,9 +522,10 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         """Execute the search command in a terminal."""
         import tempfile
         
-        # Path to the results file
+        # Path to the results file with timestamp
         temp_dir = tempfile.gettempdir()
-        results_file = os.path.join(temp_dir, 'coral-search.md')
+        timestamp = datetime.now().strftime('%Y-%m-%d--%H-%M-%S')
+        results_file = os.path.join(temp_dir, f'coral-search--{timestamp}.md')
         
         # Create a search script that will be executed in the terminal
         script_content = f'''#!/bin/bash
@@ -562,7 +563,10 @@ find "{folder_path}" -type f ! -name "*.pdf" -print0 2>/dev/null | xargs -0 grep
     echo "Found in: $file"
     # URL encode the file path for the link
     encoded_file=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$file', safe='/'))")
-    echo "- [$file](file://$encoded_file)" >> "{results_file}"
+
+    # NOTE: Not using a markdown link because VSCode (which we open with) lets us CTRL+CLICK filenames to open them
+    # echo "- [$file](file://$encoded_file)" >> "{results_file}"
+    echo "- file://$encoded_file" >> "{results_file}"
 done
 
 echo ""
@@ -587,10 +591,12 @@ fi
 
 echo ""
 echo "Search complete!"
-echo ""
-echo "Results written to: {results_file}"
-echo ""
-read -p "Press ENTER to open results in VSCode..."
+
+# Commented out so we just open immediately in VSCode instead of prompting first
+# echo ""
+# echo "Results written to: {results_file}"
+# echo ""
+# read -p "Press ENTER to open results in VSCode..."
 
 # Open results in VSCode
 {self.VSCODE_PATH} "{results_file}"

@@ -2,7 +2,7 @@
 
 A developer-focused extension for Nautilus file manager that adds convenient context menu actions to streamline your workflow. Coral enhances Nautilus with productivity tools specifically designed for software developers.
 
-Coral consists only of the three menu items added to the Nautilus right-click popup menu as shown in the image below which are: New Markdown, Open in VSCode, and Run Script. The Coral Nautilus extension adds the ability to create a new markdown file in any folder, using a single mouse click (a nice productivity aid), a way to open VSCode projects with a single click, as well as the ability to run shell scripts with a single click. All of these tasks are very common for developers, and it's nice to have these embedded on a menu for a single click right inside Nautilus. So the purpose of Coral is to simply make these three actions much easier to do. 
+Coral consists of four menu items added to the Nautilus right-click popup menu as shown in the image below: New Markdown, Search, Open in VSCode, and Run Script. The Coral Nautilus extension adds the ability to create a new markdown file in any folder using a single mouse click (a nice productivity aid), recursively search for text content across all files including PDFs, open VSCode projects with a single click, as well as the ability to run shell scripts with a single click. All of these tasks are very common for developers, and it's nice to have these embedded on a menu for a single click right inside Nautilus. 
 
 ![Menu Screenshot](menu-screenshot.png)
 
@@ -22,7 +22,26 @@ Creates a new timestamped Markdown file and automatically opens it in VS Code. P
 - **Automatic timestamping:** Files are named with the current date and time (YYYY-MM-DD--HH-MM-SS format)
 - **Instant editing:** Opens immediately in VS Code for seamless workflow
 
-### 📂 Open in VS Code
+### � Search
+**Available:** On folders and empty space (searches current directory)
+
+Recursively searches for text content within all files in a folder, including inside PDF files. Results are saved to a timestamped markdown file and opened in VS Code with clickable file links.
+
+- **Powerful search:** Uses `grep` for regular files and `pdftotext` for PDF content
+- **Interactive prompting:** Enter your search term via a friendly `zenity` dialog
+- **Live feedback:** Terminal window shows search progress in real-time
+- **Clickable results:** File paths are formatted as `file://` URLs that you can Ctrl+Click in VS Code to open
+- **Persistent history:** Each search creates a timestamped file (e.g., `coral-search--2025-11-05--14-30-45.md`) in `/tmp/`
+- **Chronological sorting:** Search result files are named to sort chronologically, making it easy to review past searches
+- **Case-insensitive:** Searches ignore case for better matching
+- **PDF support detection:** Automatically checks for `pdftotext` and provides installation instructions if needed
+
+**Note:** To enable PDF searching, install poppler-utils:
+```bash
+sudo apt install poppler-utils
+```
+
+### �📂 Open in VS Code
 **Available:** On folders, text files, and empty space
 
 Launches Visual Studio Code with the selected item, making it effortless to jump into coding or editing tasks.
@@ -63,6 +82,9 @@ Nautilus does already have the ability to run script files, but using this menu 
 ### Creating Documentation
 Right-click in any project folder and select "New Markdown" to instantly create timestamped documentation files. Perfect for meeting notes, feature specifications, or development logs.
 
+### Finding Text Across Your Project
+Right-click on any project folder and select "Search" to find text content across all files, including inside PDFs. Watch the search progress in the terminal, then press Enter to view clickable results in VS Code. Search history is preserved in `/tmp/` with timestamped filenames for easy reference.
+
 ### Quick Code Editing
 Right-click on any text file or folder and select "Open in VS Code" to jump straight into development without navigating through menus or typing terminal commands.
 
@@ -80,7 +102,8 @@ Right-click on any shell script and select "Run Script" to execute it with full 
 - Nautilus file manager
 - Visual Studio Code
 - Python 3 with Nautilus bindings (automatically installed by setup script)
-- zenity (for graphical filename prompts)
+- zenity (for graphical prompts)
+- poppler-utils (optional, for PDF search support - install with `sudo apt install poppler-utils`)
 
 ## Why Coral?
 
