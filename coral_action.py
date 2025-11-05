@@ -83,15 +83,47 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         new_markdown_item.connect('activate', self.new_markdown_from_selection, file)
         items.append(new_markdown_item)
         
-        # Add Search option for directories
+        # Add Search submenu for directories
         if file.is_directory():
-            search_item = Nautilus.MenuItem(
-                name='AddNautilusMenuItems::search_folder',
+            search_parent = Nautilus.MenuItem(
+                name='AddNautilusMenuItems::search_parent',
                 label='Search',
-                tip='Recursively search for text in files (including PDFs)'
+                tip='Search options'
             )
-            search_item.connect('activate', self.search_folder, file)
-            items.append(search_item)
+            
+            # Create submenu
+            search_submenu = Nautilus.Menu()
+            
+            # Literal search option
+            literal_item = Nautilus.MenuItem(
+                name='AddNautilusMenuItems::search_literal',
+                label='Literal',
+                tip='Search for exact text (no special characters)'
+            )
+            literal_item.connect('activate', self.search_folder, file, 'literal')
+            search_submenu.append_item(literal_item)
+            
+            # Basic regex search option
+            regex_item = Nautilus.MenuItem(
+                name='AddNautilusMenuItems::search_regex',
+                label='Basic Regex',
+                tip='Search using basic regular expressions'
+            )
+            regex_item.connect('activate', self.search_folder, file, 'regex')
+            search_submenu.append_item(regex_item)
+            
+            # Extended regex search option
+            extended_item = Nautilus.MenuItem(
+                name='AddNautilusMenuItems::search_extended',
+                label='Extended Regex',
+                tip='Search using extended regular expressions (|, +, ?, etc.)'
+            )
+            extended_item.connect('activate', self.search_folder, file, 'extended')
+            search_submenu.append_item(extended_item)
+            
+            # Attach submenu to parent
+            search_parent.set_submenu(search_submenu)
+            items.append(search_parent)
         
         # Check if it's a shell script
         if not file.is_directory() and file.get_name().endswith('.sh'):
@@ -163,14 +195,46 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         new_markdown_item.connect('activate', self.new_markdown, current_folder)
         items.append(new_markdown_item)
         
-        # Search option for current folder
-        search_item = Nautilus.MenuItem(
-            name='AddNautilusMenuItems::search_current_folder',
+        # Search submenu for current folder
+        search_parent = Nautilus.MenuItem(
+            name='AddNautilusMenuItems::search_current_parent',
             label='Search',
-            tip='Recursively search for text in files (including PDFs)'
+            tip='Search options'
         )
-        search_item.connect('activate', self.search_folder, current_folder)
-        items.append(search_item)
+        
+        # Create submenu
+        search_submenu = Nautilus.Menu()
+        
+        # Literal search option
+        literal_item = Nautilus.MenuItem(
+            name='AddNautilusMenuItems::search_current_literal',
+            label='Literal',
+            tip='Search for exact text (no special characters)'
+        )
+        literal_item.connect('activate', self.search_folder, current_folder, 'literal')
+        search_submenu.append_item(literal_item)
+        
+        # Basic regex search option
+        regex_item = Nautilus.MenuItem(
+            name='AddNautilusMenuItems::search_current_regex',
+            label='Basic Regex',
+            tip='Search using basic regular expressions'
+        )
+        regex_item.connect('activate', self.search_folder, current_folder, 'regex')
+        search_submenu.append_item(regex_item)
+        
+        # Extended regex search option
+        extended_item = Nautilus.MenuItem(
+            name='AddNautilusMenuItems::search_current_extended',
+            label='Extended Regex',
+            tip='Search using extended regular expressions (|, +, ?, etc.)'
+        )
+        extended_item.connect('activate', self.search_folder, current_folder, 'extended')
+        search_submenu.append_item(extended_item)
+        
+        # Attach submenu to parent
+        search_parent.set_submenu(search_submenu)
+        items.append(search_parent)
         
         # Open current folder in VSCode option
         vscode_item = Nautilus.MenuItem(
@@ -433,7 +497,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
             path = urllib.parse.unquote(file.get_uri()[7:])
             subprocess.Popen([self.VSCODE_PATH, path])
 
-    def search_folder(self, menu, folder):
+    def search_folder(self, menu, folder, search_type='literal'):
         """
         Recursively search for text in files within the selected folder.
         
@@ -445,10 +509,14 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         Args:
             menu (Nautilus.MenuItem): The menu item that triggered this action (unused).
             folder (Nautilus.FileInfo): The folder to search within.
+            search_type (str): The type of search to perform:
+                - 'literal': Exact text match (grep -F)
+                - 'regex': Basic regular expressions (grep default)
+                - 'extended': Extended regular expressions (grep -E)
         
         Behavior:
             - Prompts user for search term via zenity dialog
-            - Searches regular files using grep
+            - Searches regular files using grep with appropriate flags
             - Searches PDF files using pdftotext + grep
             - Writes results to coral-search.md in system temp folder
             - Opens results in gnome-terminal showing search progress
@@ -495,12 +563,12 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
             GLib.PRIORITY_DEFAULT,
             pid,
             self._on_search_term_entered,
-            (stdout_fd, folder_path),
+            (stdout_fd, folder_path, search_type),
         )
     
     def _on_search_term_entered(self, pid, status, data):
         """Process search term once zenity dialog closes."""
-        stdout_fd, folder_path = data
+        stdout_fd, folder_path, search_type = data
         
         search_term = ''
         try:
@@ -516,11 +584,34 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
             return
         
         # Create the search script
-        self._execute_search(folder_path, search_term)
+        self._execute_search(folder_path, search_term, search_type)
     
-    def _execute_search(self, folder_path, search_term):
-        """Execute the search command in a terminal."""
+    def _execute_search(self, folder_path, search_term, search_type='literal'):
+        """Execute the search command in a terminal.
+        
+        Args:
+            folder_path (str): The folder path to search in.
+            search_term (str): The search term to look for.
+            search_type (str): The type of search:
+                - 'literal': Exact text match using grep -F
+                - 'regex': Basic regular expressions using grep (default)
+                - 'extended': Extended regular expressions using grep -E
+        """
         import tempfile
+        
+        # Determine grep flags based on search type
+        if search_type == 'literal':
+            grep_flags = '-F -l -i'  # Fixed string (literal), list files, case-insensitive
+            grep_flags_quiet = '-F -q -i'  # For PDF search
+            search_type_label = 'Literal'
+        elif search_type == 'extended':
+            grep_flags = '-E -l -i'  # Extended regex, list files, case-insensitive
+            grep_flags_quiet = '-E -q -i'  # For PDF search
+            search_type_label = 'Extended Regex'
+        else:  # regex (basic)
+            grep_flags = '-l -i'  # Basic regex (default), list files, case-insensitive
+            grep_flags_quiet = '-q -i'  # For PDF search
+            search_type_label = 'Basic Regex'
         
         # Path to the results file with timestamp
         temp_dir = tempfile.gettempdir()
@@ -530,11 +621,14 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         # Create a search script that will be executed in the terminal
         script_content = f'''#!/bin/bash
 echo "Searching for: {search_term}"
+echo "Search type: {search_type_label}"
 echo "In folder: {folder_path}"
 echo ""
 echo "# Search Results" > "{results_file}"
 echo "" >> "{results_file}"
 echo "**Search term:** {search_term}" >> "{results_file}"
+echo "" >> "{results_file}"
+echo "**Search type:** {search_type_label}" >> "{results_file}"
 echo "" >> "{results_file}"
 echo "**Search location:** {folder_path}" >> "{results_file}"
 echo "" >> "{results_file}"
@@ -559,7 +653,7 @@ echo "## Regular Files" >> "{results_file}"
 echo "" >> "{results_file}"
 
 # Search non-PDF files
-find "{folder_path}" -type f ! -name "*.pdf" -print0 2>/dev/null | xargs -0 grep -l -i "{search_term}" 2>/dev/null | while read -r file; do
+find "{folder_path}" -type f ! -name "*.pdf" -print0 2>/dev/null | xargs -0 grep {grep_flags} "{search_term}" 2>/dev/null | while read -r file; do
     echo "Found in: $file"
     # URL encode the file path for the link
     encoded_file=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$file', safe='/'))")
@@ -578,11 +672,14 @@ echo "" >> "{results_file}"
 # Search PDF files if pdftotext is available
 if command -v pdftotext &> /dev/null; then
     find "{folder_path}" -type f -name "*.pdf" -print0 2>/dev/null | while IFS= read -r -d '' pdf_file; do
-        if pdftotext "$pdf_file" - 2>/dev/null | grep -q -i "{search_term}"; then
+        if pdftotext "$pdf_file" - 2>/dev/null | grep {grep_flags_quiet} "{search_term}"; then
             echo "Found in PDF: $pdf_file"
             # URL encode the file path for the link
             encoded_file=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$pdf_file', safe='/'))")
-            echo "- [$pdf_file](file://$encoded_file)" >> "{results_file}"
+            
+            # NOTE: Not using a markdown link because VSCode (which we open with) lets us CTRL+CLICK filenames to open them
+            # echo "- [$pdf_file](file://$encoded_file)" >> "{results_file}"
+            echo "- file://$encoded_file" >> "{results_file}"
         fi
     done
 else

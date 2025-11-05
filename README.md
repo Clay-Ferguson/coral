@@ -22,10 +22,34 @@ Creates a new timestamped Markdown file and automatically opens it in VS Code. P
 - **Automatic timestamping:** Files are named with the current date and time (YYYY-MM-DD--HH-MM-SS format)
 - **Instant editing:** Opens immediately in VS Code for seamless workflow
 
-### � Search
+### 🔍 Search
 **Available:** On folders and empty space (searches current directory)
 
 Recursively searches for text content within all files in a folder, including inside PDF files. Results are saved to a timestamped markdown file and opened in VS Code with clickable file links.
+
+**Three Search Modes:**
+
+The Search menu contains a submenu with three powerful search options:
+
+1. **Literal** - Exact text matching with no special characters
+   - Searches for the exact text you enter
+   - Special characters like `.`, `*`, `|`, `?` are treated as literal text
+   - Perfect for finding file paths, URLs, or text containing special symbols
+   - Example: Searching for `file*.txt` finds that exact string, not a wildcard pattern
+
+2. **Basic Regex** - Standard regular expression patterns
+   - Uses grep's default (BRE) pattern matching
+   - Supports `.` (any char), `*` (zero or more), `^` (start), `$` (end), `[...]` (character classes)
+   - Great for flexible pattern matching with common wildcards
+   - See [BASIC-REGEX-TIPS.md](BASIC-REGEX-TIPS.md) for comprehensive examples and patterns
+
+3. **Extended Regex** - Advanced regular expression patterns
+   - Uses grep's extended mode (`-E`) for powerful searching
+   - Supports `|` (OR), `+` (one or more), `?` (optional), `{n,m}` (repetition), `()` (grouping)
+   - Perfect for complex searches like `error|warning|critical` or `https?://`
+   - See [EXTENDED-REGEX-TIPS.md](EXTENDED-REGEX-TIPS.md) for comprehensive examples and patterns
+
+**Search Features:**
 
 - **Powerful search:** Uses `grep` for regular files and `pdftotext` for PDF content
 - **Interactive prompting:** Enter your search term via a friendly `zenity` dialog
@@ -33,7 +57,7 @@ Recursively searches for text content within all files in a folder, including in
 - **Clickable results:** File paths are formatted as `file://` URLs that you can Ctrl+Click in VS Code to open
 - **Persistent history:** Each search creates a timestamped file (e.g., `coral-search--2025-11-05--14-30-45.md`) in `/tmp/`
 - **Chronological sorting:** Search result files are named to sort chronologically, making it easy to review past searches
-- **Case-insensitive:** Searches ignore case for better matching
+- **Case-insensitive:** All search modes ignore case for better matching
 - **PDF support detection:** Automatically checks for `pdftotext` and provides installation instructions if needed
 
 **Note:** To enable PDF searching, install poppler-utils:
@@ -83,7 +107,7 @@ Nautilus does already have the ability to run script files, but using this menu 
 Right-click in any project folder and select "New Markdown" to instantly create timestamped documentation files. Perfect for meeting notes, feature specifications, or development logs.
 
 ### Finding Text Across Your Project
-Right-click on any project folder and select "Search" to find text content across all files, including inside PDFs. Watch the search progress in the terminal, then press Enter to view clickable results in VS Code. Search history is preserved in `/tmp/` with timestamped filenames for easy reference.
+Right-click on any project folder, hover over "Search", and choose one of three search modes (Literal, Basic Regex, or Extended Regex) based on your needs. Enter your search term to find text content across all files, including inside PDFs. Watch the search progress in the terminal, then the results automatically open in VS Code with clickable file links. Search history is preserved in `/tmp/` with timestamped filenames for easy reference.
 
 ### Quick Code Editing
 Right-click on any text file or folder and select "Open in VS Code" to jump straight into development without navigating through menus or typing terminal commands.
