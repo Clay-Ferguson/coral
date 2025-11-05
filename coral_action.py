@@ -7,6 +7,14 @@ import mimetypes
 from datetime import datetime
 from gi.repository import Nautilus, GObject, GLib
 
+# Try to import yaml for config file support
+try:
+    import yaml
+    YAML_AVAILABLE = True
+except ImportError:
+    YAML_AVAILABLE = False
+    print("Warning: PyYAML not available. Config file features will be disabled.")
+
 class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
     """
     A Nautilus file manager extension that adds developer-focused context menu actions.
@@ -30,6 +38,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
     """
     VSCODE_PATH = '/usr/bin/code'
     TEXT_FILE_EXTENSIONS = ('.txt', '.md', '.py', '.js', '.html', '.css', '.json', '.xml', '.yml', '.yaml', '.ini', '.cfg', '.conf')
+    CONFIG_FILE = os.path.expanduser('~/.config/coral/coral-config.yaml')
     
     def __init__(self):
         """
@@ -40,6 +49,46 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         when Nautilus loads the extension.
         """
         super().__init__()
+    
+    def _load_config(self):
+        """
+        Load configuration from YAML file.
+        
+        Returns:
+            dict: Configuration dictionary, or empty dict if config can't be loaded.
+        """
+        if not YAML_AVAILABLE:
+            return {}
+        
+        try:
+            if os.path.exists(self.CONFIG_FILE):
+                with open(self.CONFIG_FILE, 'r') as f:
+                    return yaml.safe_load(f) or {}
+            else:
+                print(f"Config file not found: {self.CONFIG_FILE}")
+                return {}
+        except Exception as e:
+            print(f"Error loading config file: {e}")
+            return {}
+    
+    def _get_search_excluded_patterns(self):
+        """
+        Get excluded patterns for search from config file.
+        
+        Returns:
+            list: List of glob patterns to exclude from search, or empty list.
+        """
+        config = self._load_config()
+        
+        try:
+            excluded = config.get('search', {}).get('excluded', [])
+            if isinstance(excluded, list):
+                return excluded
+            else:
+                return []
+        except Exception as e:
+            print(f"Error reading excluded patterns from config: {e}")
+            return []
 
     def get_file_items(self, files):
         """
@@ -613,6 +662,18 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
             grep_flags_quiet = '-q -i'  # For PDF search
             search_type_label = 'Basic Regex'
         
+        # Get excluded patterns from config
+        excluded_patterns = self._get_search_excluded_patterns()
+        
+        # Build find command exclusions
+        find_exclusions = ''
+        if excluded_patterns:
+            exclusion_parts = []
+            for pattern in excluded_patterns:
+                # Use -path for glob patterns and -prune to skip those directories
+                exclusion_parts.append(f'-path "{pattern}" -prune -o')
+            find_exclusions = ' '.join(exclusion_parts) + ' '
+        
         # Path to the results file with timestamp
         temp_dir = tempfile.gettempdir()
         timestamp = datetime.now().strftime('%Y-%m-%d--%H-%M-%S')
@@ -652,8 +713,8 @@ echo "Searching regular files..."
 echo "## Regular Files" >> "{results_file}"
 echo "" >> "{results_file}"
 
-# Search non-PDF files
-find "{folder_path}" -type f ! -name "*.pdf" -print0 2>/dev/null | xargs -0 grep {grep_flags} "{search_term}" 2>/dev/null | while read -r file; do
+# Search non-PDF files with exclusions
+find "{folder_path}" {find_exclusions}-type f ! -name "*.pdf" -print0 2>/dev/null | xargs -0 grep {grep_flags} "{search_term}" 2>/dev/null | while read -r file; do
     echo "Found in: $file"
     # URL encode the file path for the link
     encoded_file=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$file', safe='/'))")
@@ -669,9 +730,9 @@ echo "" >> "{results_file}"
 echo "## PDF Files" >> "{results_file}"
 echo "" >> "{results_file}"
 
-# Search PDF files if pdftotext is available
+# Search PDF files if pdftotext is available (with exclusions)
 if command -v pdftotext &> /dev/null; then
-    find "{folder_path}" -type f -name "*.pdf" -print0 2>/dev/null | while IFS= read -r -d '' pdf_file; do
+    find "{folder_path}" {find_exclusions}-type f -name "*.pdf" -print0 2>/dev/null | while IFS= read -r -d '' pdf_file; do
         if pdftotext "$pdf_file" - 2>/dev/null | grep {grep_flags_quiet} "{search_term}"; then
             echo "Found in PDF: $pdf_file"
             # URL encode the file path for the link

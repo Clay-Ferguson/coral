@@ -59,6 +59,8 @@ The Search menu contains a submenu with three powerful search options:
 - **Chronological sorting:** Search result files are named to sort chronologically, making it easy to review past searches
 - **Case-insensitive:** All search modes ignore case for better matching
 - **PDF support detection:** Automatically checks for `pdftotext` and provides installation instructions if needed
+- **Configurable exclusions:** Exclude directories like `node_modules`, `.git`, build folders, etc. from searches
+  - See [CONFIG.md](CONFIG.md) for details on customizing search exclusions
 
 **Note:** To enable PDF searching, install poppler-utils:
 ```bash

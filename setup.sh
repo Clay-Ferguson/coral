@@ -21,5 +21,37 @@ chmod +x "$ACTION_FILE"
 
 # Install python3-nautilus if needed
 echo "Installing required dependencies..."
-sudo apt update && sudo apt install -y python3-nautilus
+sudo apt update && sudo apt install -y python3-nautilus python3-yaml
+
+# Create config directory and default config file if it doesn't exist
+CONFIG_DIR="$HOME/.config/coral"
+CONFIG_FILE="$CONFIG_DIR/coral-config.yaml"
+
+mkdir -p "$CONFIG_DIR"
+
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "Creating default configuration file..."
+    cat > "$CONFIG_FILE" << 'EOF'
+# Coral Nautilus Extension Configuration
+
+search:
+  # Patterns to exclude from searches (glob patterns)
+  # These directories/files will be skipped during recursive search
+  excluded:
+    - "*/node_modules/*"
+    - "*/.git/*"
+    - "*/.venv/*"
+    - "*/__pycache__/*"
+    - "*/venv/*"
+    - "*/.svn/*"
+    - "*/.hg/*"
+    - "*/build/*"
+    - "*/dist/*"
+    - "*/.next/*"
+    - "*/.nuxt/*"
+EOF
+    echo "Default config created at: $CONFIG_FILE"
+else
+    echo "Config file already exists at: $CONFIG_FILE"
+fi
 
