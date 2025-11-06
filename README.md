@@ -41,13 +41,13 @@ The Search menu contains a submenu with three powerful search options:
    - Uses grep's default (BRE) pattern matching
    - Supports `.` (any char), `*` (zero or more), `^` (start), `$` (end), `[...]` (character classes)
    - Great for flexible pattern matching with common wildcards
-   - See [BASIC-REGEX-TIPS.md](BASIC-REGEX-TIPS.md) for comprehensive examples and patterns
+   - See [BASIC-REGEX-TIPS.md](docs/BASIC-REGEX-TIPS.md) for comprehensive examples and patterns
 
 3. **Extended Regex** - Advanced regular expression patterns
    - Uses grep's extended mode (`-E`) for powerful searching
    - Supports `|` (OR), `+` (one or more), `?` (optional), `{n,m}` (repetition), `()` (grouping)
    - Perfect for complex searches like `error|warning|critical` or `https?://`
-   - See [EXTENDED-REGEX-TIPS.md](EXTENDED-REGEX-TIPS.md) for comprehensive examples and patterns
+   - See [EXTENDED-REGEX-TIPS.md](docs/EXTENDED-REGEX-TIPS.md) for comprehensive examples and patterns
 
 **Search Features:**
 
@@ -60,7 +60,7 @@ The Search menu contains a submenu with three powerful search options:
 - **Case-insensitive:** All search modes ignore case for better matching
 - **PDF support detection:** Automatically checks for `pdftotext` and provides installation instructions if needed
 - **Configurable exclusions:** Exclude directories like `node_modules`, `.git`, build folders, etc. from searches
-  - See [CONFIG.md](CONFIG.md) for details on customizing search exclusions
+  - See [CONFIG.md](docs/CONFIG.md) for details on customizing search exclusions
 
 **Note:** To enable PDF searching, install poppler-utils:
 ```bash
