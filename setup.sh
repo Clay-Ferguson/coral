@@ -16,6 +16,7 @@ mkdir -p "$ACTIONS_DIR"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cp "$SCRIPT_DIR/coral_action.py" "$ACTION_FILE"
 cp "$SCRIPT_DIR/search.py" "$ACTIONS_DIR/search.py"
+cp "$SCRIPT_DIR/new_markdown.py" "$ACTIONS_DIR/new_markdown.py"
 
 # Make sure it's executable
 chmod +x "$ACTION_FILE"
