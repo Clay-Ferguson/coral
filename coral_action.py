@@ -313,6 +313,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
             '--title=New Markdown File',
             '--text=Enter a file name for the markdown file:',
             '--modal',
+            '--width=600',
             '--entry-text',
             default_filename,
         ]
@@ -595,6 +596,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
             '--title=Search Files',
             '--text=Enter search term:',
             '--modal',
+            '--width=600',
         ]
         
         try:
