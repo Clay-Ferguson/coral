@@ -10,6 +10,8 @@ from gi.repository import Nautilus, GObject, GLib
 # Import our handlers
 from search import SearchHandler
 from new_markdown import MarkdownHandler
+from open_in_vscode import VSCodeHandler
+from run_script import ScriptRunner
 
 # Try to import yaml for config file support
 try:
@@ -56,6 +58,8 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         # Initialize the handlers
         self.search_handler = SearchHandler(self.VSCODE_PATH, self.CONFIG_FILE)
         self.markdown_handler = MarkdownHandler(self.VSCODE_PATH)
+        self.vscode_handler = VSCodeHandler(self.VSCODE_PATH)
+        self.script_runner = ScriptRunner()
 
 
     def get_file_items(self, files):
@@ -263,82 +267,6 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         items.append(vscode_item)
         return items
 
-    def run_script(self, menu, file):
-        """
-        Execute the selected shell script in a new terminal window.
-        
-        This method handles the "Run Script" action for .sh files. It opens a new
-        gnome-terminal window, navigates to the script's directory, and executes
-        the script while providing user feedback and keeping the terminal open
-        for result inspection.
-        
-        Args:
-            menu (Nautilus.MenuItem): The menu item that triggered this action (unused).
-            file (Nautilus.FileInfo): The shell script file to execute.
-        
-        Behavior:
-            - Opens a new gnome-terminal window
-            - Sets working directory to the script's parent directory
-            - Displays script name and directory before execution
-            - Executes the script using bash
-            - Shows completion message and waits for user input before closing
-            - Keeps terminal open for result inspection
-        
-        Terminal Command Structure:
-            Uses gnome-terminal with --working-directory and -- separator for proper
-            command isolation and directory context.
-        
-        Security Note:
-            Executes scripts directly with bash - users should verify script content
-            before execution as this provides no sandboxing.
-        """
-        if file.get_uri().startswith('file://'):
-            script_path = urllib.parse.unquote(file.get_uri()[7:])
-            script_dir = os.path.dirname(script_path)
-            script_name = os.path.basename(script_path)
-            
-            # Create a command that opens a new terminal, changes to the script directory, and runs the script
-            # Using gnome-terminal with -- to ensure the terminal stays open after execution
-            command = [
-                'gnome-terminal',
-                '--working-directory=' + script_dir,
-                '--',
-                'bash', '-c',
-                f'echo "Running script: {script_name}"; echo "Directory: {script_dir}"; echo ""; bash "{script_name}"; echo ""; echo "Script execution completed. Press Enter to close..."; read'
-            ]
-            subprocess.Popen(command)
-
-    def open_in_vscode(self, menu, file):
-        """
-        Open the selected file or folder in Visual Studio Code.
-        
-        This method handles the "Open in VSCode" action for both files and folders.
-        It launches VSCode with the selected item as the target, allowing developers
-        to quickly open their files or projects in their preferred editor.
-        
-        Args:
-            menu (Nautilus.MenuItem): The menu item that triggered this action (unused).
-            file (Nautilus.FileInfo): The file or folder to open in VSCode.
-        
-        Behavior:
-            - Launches VSCode using the path specified in VSCODE_PATH class constant
-            - Passes the file/folder path as an argument to VSCode
-            - Works with both individual files and entire directories
-            - Uses subprocess.Popen for non-blocking execution
-        
-        URI Handling:
-            - Validates that the URI starts with 'file://' for local files
-            - Uses urllib.parse.unquote to properly decode the file path
-            - Handles file paths with spaces and special characters
-        
-        Integration:
-            VSCode path is configurable via the VSCODE_PATH class constant,
-            defaulting to '/usr/bin/code' for standard Linux installations.
-        """
-        if file.get_uri().startswith('file://'):
-            path = urllib.parse.unquote(file.get_uri()[7:])
-            subprocess.Popen([self.VSCODE_PATH, path])
-
     def search_folder(self, menu, folder, search_type='literal'):
         """
         Delegate to the search handler for folder search operations.
@@ -365,5 +293,23 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         while delegating the actual markdown creation to the MarkdownHandler.
         """
         self.markdown_handler.new_markdown(menu, current_folder)
+
+    def open_in_vscode(self, menu, file):
+        """
+        Delegate to the VSCode handler for opening files/folders in VSCode.
+        
+        This is a wrapper method that maintains the existing menu interface
+        while delegating the actual VSCode opening to the VSCodeHandler.
+        """
+        self.vscode_handler.open_in_vscode(menu, file)
+
+    def run_script(self, menu, file):
+        """
+        Delegate to the script runner for executing shell scripts.
+        
+        This is a wrapper method that maintains the existing menu interface
+        while delegating the actual script execution to the ScriptRunner.
+        """
+        self.script_runner.run_script(menu, file)
 
     
