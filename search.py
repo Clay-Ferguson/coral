@@ -262,28 +262,55 @@ echo "Searching regular files..."
 echo "## Regular Files" >> "{results_file}"
 echo "" >> "{results_file}"
 
-# Search non-PDF files with exclusions
-find "{folder_path}" {find_exclusions}-type f ! -name "*.pdf" -print0 2>/dev/null | xargs -0 grep {grep_flags} "{search_term}" 2>/dev/null | while read -r file; do
-    echo "Found in: $file"
-    # URL encode the file path for the link
-    encoded_file=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$file', safe='/'))")
+# Initialize counters
+files_searched=0
+matches_found=0
 
-    # NOTE: Not using a markdown link because VSCode (which we open with) lets us CTRL+CLICK filenames to open them
-    # echo "- [$file](file://$encoded_file)" >> "{results_file}"
-    echo "- file://$encoded_file" >> "{results_file}"
+# Search non-PDF files with exclusions and show progress
+find "{folder_path}" {find_exclusions}-type f ! -name "*.pdf" -print0 2>/dev/null | while IFS= read -r -d '' file; do
+    ((files_searched++))
+    
+    # Display progress indicator (overwrites same line)
+    echo -ne "\rFiles searched: $files_searched | Matches found: $matches_found"
+    
+    # Check if file matches the search term
+    if grep {grep_flags} "{search_term}" "$file" >/dev/null 2>&1; then
+        ((matches_found++))
+        echo -ne "\rFiles searched: $files_searched | Matches found: $matches_found"
+        
+        # URL encode the file path for the link
+        encoded_file=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$file', safe='/'))")
+        
+        # NOTE: Not using a markdown link because VSCode (which we open with) lets us CTRL+CLICK filenames to open them
+        # echo "- [$file](file://$encoded_file)" >> "{results_file}"
+        echo "- file://$encoded_file" >> "{results_file}"
+    fi
 done
 
+# Final newline after progress indicator
+echo ""
 echo ""
 echo "Searching PDF files..."
 echo "" >> "{results_file}"
 echo "## PDF Files" >> "{results_file}"
 echo "" >> "{results_file}"
 
+# Reset counters for PDF search
+pdf_searched=0
+pdf_matches=0
+
 # Search PDF files if pdftotext is available (with exclusions)
 if command -v pdftotext &> /dev/null; then
     find "{folder_path}" {find_exclusions}-type f -name "*.pdf" -print0 2>/dev/null | while IFS= read -r -d '' pdf_file; do
+        ((pdf_searched++))
+        
+        # Display progress indicator for PDFs
+        echo -ne "\rPDF files searched: $pdf_searched | Matches found: $pdf_matches"
+        
         if pdftotext "$pdf_file" - 2>/dev/null | grep {grep_flags_quiet} "{search_term}"; then
-            echo "Found in PDF: $pdf_file"
+            ((pdf_matches++))
+            echo -ne "\rPDF files searched: $pdf_searched | Matches found: $pdf_matches"
+            
             # URL encode the file path for the link
             encoded_file=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$pdf_file', safe='/'))")
             
@@ -292,6 +319,8 @@ if command -v pdftotext &> /dev/null; then
             echo "- file://$encoded_file" >> "{results_file}"
         fi
     done
+    # Final newline after PDF progress indicator
+    echo ""
 else
     echo "(Skipping PDF files - pdftotext not installed)"
 fi
