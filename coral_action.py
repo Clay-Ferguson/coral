@@ -104,7 +104,44 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         new_markdown_item.connect('activate', self.new_markdown_from_selection, file)
         items.append(new_markdown_item)
         
-        # Add Search submenu for directories
+        # Check if it's a shell script
+        if not file.is_directory() and file.get_name().endswith('.sh'):
+            run_script_item = Nautilus.MenuItem(
+                name='AddNautilusMenuItems::run_script',
+                label='Run Script',
+                tip='Run this shell script in a new terminal'
+            )
+            run_script_item.connect('activate', self.run_script, file)
+            items.append(run_script_item)
+        
+        # Check if it's a folder or a text file
+        if file.is_directory():
+            vscode_item = Nautilus.MenuItem(
+                name='AddNautilusMenuItems::open_in_vscode',
+                label='Open in VSCode',
+                tip='Open this folder in Visual Studio Code'
+            )
+            vscode_item.connect('activate', self.open_in_vscode, file)
+            items.append(vscode_item)
+        elif not file.is_directory():
+            # Check if it's a text file using mimetypes
+            filename = file.get_name()
+            mimetype, _ = mimetypes.guess_type(filename)
+            
+            # Consider it a text file if mimetype starts with 'text/' or if it's a known text extension
+            is_text_file = (mimetype and mimetype.startswith('text/')) or \
+                          filename.endswith(self.TEXT_FILE_EXTENSIONS)
+            
+            if is_text_file:
+                vscode_item = Nautilus.MenuItem(
+                    name='AddNautilusMenuItems::open_file_in_vscode',
+                    label='Open in VSCode',
+                    tip='Open this file in Visual Studio Code'
+                )
+                vscode_item.connect('activate', self.open_in_vscode, file)
+                items.append(vscode_item)
+        
+        # Add Search submenu for directories (at the end)
         if file.is_directory():
             search_parent = Nautilus.MenuItem(
                 name='AddNautilusMenuItems::search_parent',
@@ -146,43 +183,6 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
             search_parent.set_submenu(search_submenu)
             items.append(search_parent)
         
-        # Check if it's a shell script
-        if not file.is_directory() and file.get_name().endswith('.sh'):
-            run_script_item = Nautilus.MenuItem(
-                name='AddNautilusMenuItems::run_script',
-                label='Run Script',
-                tip='Run this shell script in a new terminal'
-            )
-            run_script_item.connect('activate', self.run_script, file)
-            items.append(run_script_item)
-        
-        # Check if it's a folder or a text file
-        if file.is_directory():
-            vscode_item = Nautilus.MenuItem(
-                name='AddNautilusMenuItems::open_in_vscode',
-                label='Open in VSCode',
-                tip='Open this folder in Visual Studio Code'
-            )
-            vscode_item.connect('activate', self.open_in_vscode, file)
-            items.append(vscode_item)
-        elif not file.is_directory():
-            # Check if it's a text file using mimetypes
-            filename = file.get_name()
-            mimetype, _ = mimetypes.guess_type(filename)
-            
-            # Consider it a text file if mimetype starts with 'text/' or if it's a known text extension
-            is_text_file = (mimetype and mimetype.startswith('text/')) or \
-                          filename.endswith(self.TEXT_FILE_EXTENSIONS)
-            
-            if is_text_file:
-                vscode_item = Nautilus.MenuItem(
-                    name='AddNautilusMenuItems::open_file_in_vscode',
-                    label='Open in VSCode',
-                    tip='Open this file in Visual Studio Code'
-                )
-                vscode_item.connect('activate', self.open_in_vscode, file)
-                items.append(vscode_item)
-        
         return items
 
     def get_background_items(self, current_folder):
@@ -216,7 +216,16 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         new_markdown_item.connect('activate', self.new_markdown, current_folder)
         items.append(new_markdown_item)
         
-        # Search submenu for current folder
+        # Open current folder in VSCode option
+        vscode_item = Nautilus.MenuItem(
+            name='AddNautilusMenuItems::open_current_in_vscode',
+            label='Open in VSCode',
+            tip='Open current folder in Visual Studio Code'
+        )
+        vscode_item.connect('activate', self.open_in_vscode, current_folder)
+        items.append(vscode_item)
+        
+        # Search submenu for current folder (at the end)
         search_parent = Nautilus.MenuItem(
             name='AddNautilusMenuItems::search_current_parent',
             label='Search',
@@ -257,14 +266,6 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         search_parent.set_submenu(search_submenu)
         items.append(search_parent)
         
-        # Open current folder in VSCode option
-        vscode_item = Nautilus.MenuItem(
-            name='AddNautilusMenuItems::open_current_in_vscode',
-            label='Open in VSCode',
-            tip='Open current folder in Visual Studio Code'
-        )
-        vscode_item.connect('activate', self.open_in_vscode, current_folder)
-        items.append(vscode_item)
         return items
 
     def search_folder(self, menu, folder, search_type='literal'):
