@@ -8,7 +8,7 @@
 
 ## Menu Actions
 - **New Markdown** appears everywhere. Uses `GLib.spawn_async()` to launch `zenity --entry` non-blocking with timestamped default (`%Y-%m-%d--%H-%M-%S.md`). Callback chain: `_start_markdown_creation()` → `_launch_zenity_dialog()` → `_on_zenity_finished()` → `_finalize_markdown_creation()`. Creates file under right-click target and opens in VS Code.
-- **Search** shows on folders/background. Prompts for search term via zenity, generates temporary bash script at `/tmp/coral-search-script.sh` that uses `grep -i` for regular files and `pdftotext | grep` for PDFs. Results written to timestamped `/tmp/coral-search--YYYY-MM-DD--HH-MM-SS.md` with clickable `file://` URLs and opened in VS Code. Search runs in `gnome-terminal` for live progress feedback.
+- **Search** shows on folders/background. Prompts for search term via zenity, generates temporary bash script at `/tmp/coral/coral-search-script.sh` that uses `grep -i` for regular files and `pdftotext | grep` for PDFs. Results written to timestamped `/tmp/coral/coral-search--YYYY-MM-DD--HH-MM-SS.md` with clickable `file://` URLs and opened in VS Code. Search runs in `gnome-terminal` for live progress feedback.
 - **Open in VS Code** shows on folders, text-like files, or background. Resolves URIs via `urllib.parse.unquote(uri[7:])`, filters by MIME type + extension tuple, opens VS Code in correct mode (folder workspace vs single file).
 - **Run Script** only surfaces for `.sh` files. Spawns `gnome-terminal --working-directory=<script_dir> -- bash -c 'echo ...; bash "{script}"; echo ...; read'` to display script name/directory and keep terminal open after execution.
 

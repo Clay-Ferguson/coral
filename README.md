@@ -55,7 +55,7 @@ The Search menu contains a submenu with three powerful search options:
 - **Interactive prompting:** Enter your search term via a friendly `zenity` dialog
 - **Live feedback:** Terminal window shows search progress in real-time
 - **Clickable results:** File paths are formatted as `file://` URLs that you can Ctrl+Click in VS Code to open
-- **Persistent history:** Each search creates a timestamped file (e.g., `coral-search--2025-11-05--14-30-45.md`) in `/tmp/`
+- **Persistent history:** Each search creates a timestamped file (e.g., `coral-search--2025-11-05--14-30-45.md`) in `/tmp/coral/`
 - **Chronological sorting:** Search result files are named to sort chronologically, making it easy to review past searches
 - **Case-insensitive:** All search modes ignore case for better matching
 - **PDF support detection:** Automatically checks for `pdftotext` and provides installation instructions if needed
@@ -109,7 +109,7 @@ Nautilus does already have the ability to run script files, but using this menu 
 Right-click in any project folder and select "New Markdown" to instantly create timestamped documentation files. Perfect for meeting notes, feature specifications, or development logs.
 
 ### Finding Text Across Your Project
-Right-click on any project folder, hover over "Search", and choose one of three search modes (Literal, Basic Regex, or Extended Regex) based on your needs. Enter your search term to find text content across all files, including inside PDFs. Watch the search progress in the terminal, then the results automatically open in VS Code with clickable file links. Search history is preserved in `/tmp/` with timestamped filenames for easy reference.
+Right-click on any project folder, hover over "Search", and choose one of three search modes (Literal, Basic Regex, or Extended Regex) based on your needs. Enter your search term to find text content across all files, including inside PDFs. Watch the search progress in the terminal, then the results automatically open in VS Code with clickable file links. Search history is preserved in `/tmp/coral/` with timestamped filenames for easy reference.
 
 ### Quick Code Editing
 Right-click on any text file or folder and select "Open in VS Code" to jump straight into development without navigating through menus or typing terminal commands.

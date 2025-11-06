@@ -14,6 +14,24 @@ import tempfile
 from datetime import datetime
 from gi.repository import GLib
 
+
+def get_temp_folder():
+    """
+    Get the Coral temporary folder path, creating it if it doesn't exist.
+    
+    Returns:
+        str: Path to the coral temporary folder (typically /tmp/coral)
+    """
+    temp_dir = os.path.join(tempfile.gettempdir(), 'coral')
+    if not os.path.exists(temp_dir):
+        try:
+            os.makedirs(temp_dir, exist_ok=True)
+        except Exception as e:
+            print(f"Error creating coral temp directory: {e}")
+            # Fall back to standard temp directory if creation fails
+            return tempfile.gettempdir()
+    return temp_dir
+
 # Try to import yaml for config file support
 try:
     import yaml
@@ -206,7 +224,7 @@ class SearchHandler:
             find_exclusions = ' '.join(exclusion_parts) + ' '
         
         # Path to the results file with timestamp
-        temp_dir = tempfile.gettempdir()
+        temp_dir = get_temp_folder()
         timestamp = datetime.now().strftime('%Y-%m-%d--%H-%M-%S')
         results_file = os.path.join(temp_dir, f'coral-search--{timestamp}.md')
         
@@ -292,7 +310,7 @@ echo "Search complete!"
 '''
         
         # Write the script to a temporary file
-        script_file = os.path.join(tempfile.gettempdir(), 'coral-search-script.sh')
+        script_file = os.path.join(get_temp_folder(), 'coral-search-script.sh')
         try:
             with open(script_file, 'w') as f:
                 f.write(script_content)
