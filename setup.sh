@@ -39,6 +39,13 @@ if [ ! -f "$CONFIG_FILE" ]; then
 # Coral Nautilus Extension Configuration
 
 search:
+  # Patterns to include in searches (glob patterns)
+  # If empty or omitted, all files are included (subject to exclusions)
+  # Examples: ["*.md", "*.txt", "*.py"]
+  included:
+    - "*.md"
+    - "*.txt"
+  
   # Patterns to exclude from searches (glob patterns)
   # These directories/files will be skipped during recursive search
   excluded:

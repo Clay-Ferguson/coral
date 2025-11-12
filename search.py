@@ -75,23 +75,26 @@ class SearchHandler:
             print(f"Error loading config file: {e}")
             return {}
 
-    def _get_search_excluded_patterns(self):
+    def _get_search_patterns(self, pattern_type):
         """
-        Get excluded patterns for search from config file.
+        Get search patterns from config file.
+        
+        Args:
+            pattern_type (str): Either 'excluded' or 'included'
         
         Returns:
-            list: List of glob patterns to exclude from search, or empty list.
+            list: List of glob patterns, or empty list.
         """
         config = self._load_config()
         
         try:
-            excluded = config.get('search', {}).get('excluded', [])
-            if isinstance(excluded, list):
-                return excluded
+            patterns = config.get('search', {}).get(pattern_type, [])
+            if isinstance(patterns, list):
+                return patterns
             else:
                 return []
         except Exception as e:
-            print(f"Error reading excluded patterns from config: {e}")
+            print(f"Error reading {pattern_type} patterns from config: {e}")
             return []
         
     def search_folder(self, menu, folder, search_type='literal'):
@@ -211,7 +214,10 @@ class SearchHandler:
             search_type_label = 'Basic Regex'
         
         # Get excluded patterns from config
-        excluded_patterns = self._get_search_excluded_patterns()
+        excluded_patterns = self._get_search_patterns('excluded')
+        
+        # Get included patterns from config
+        included_patterns = self._get_search_patterns('included')
         
         # Build find command exclusions
         find_exclusions = ''
@@ -221,6 +227,24 @@ class SearchHandler:
                 # Use -path for glob patterns and -prune to skip those directories
                 exclusion_parts.append(f'-path "{pattern}" -prune -o')
             find_exclusions = ' '.join(exclusion_parts) + ' '
+        
+        # Build find command inclusions for non-PDF files
+        find_inclusions_non_pdf = ''
+        if included_patterns:
+            # Build -name conditions for included patterns (excluding PDF pattern)
+            inclusion_parts = []
+            for pattern in included_patterns:
+                if pattern != '*.pdf':  # PDFs are handled separately
+                    inclusion_parts.append(f'-name "{pattern}"')
+            
+            if inclusion_parts:  # Only add if there are non-PDF patterns
+                # Combine with -o (OR) and wrap in parentheses
+                find_inclusions_non_pdf = '\\( ' + ' -o '.join(inclusion_parts) + ' \\) '
+        
+        # Determine if PDFs should be searched based on include patterns
+        # If no include patterns specified, search PDFs by default
+        # If include patterns specified, only search PDFs if *.pdf is in the list
+        search_pdfs = not included_patterns or '*.pdf' in included_patterns
         
         # Path to the results file with timestamp
         temp_dir = get_temp_folder()
@@ -266,7 +290,7 @@ files_searched=0
 matches_found=0
 
 # Search non-PDF files with exclusions and show progress
-find "{folder_path}" {find_exclusions}-type f ! -name "*.pdf" -print0 2>/dev/null | while IFS= read -r -d '' file; do
+find "{folder_path}" {find_exclusions}-type f {find_inclusions_non_pdf}! -name "*.pdf" -print0 2>/dev/null | while IFS= read -r -d '' file; do
     ((files_searched++))
     
     # Display progress indicator (overwrites same line)
@@ -289,42 +313,48 @@ done
 # Final newline after progress indicator
 echo ""
 echo ""
-echo "Searching PDF files..."
-echo "" >> "{results_file}"
-echo "## PDF Files" >> "{results_file}"
-echo "" >> "{results_file}"
 
-# Reset counters for PDF search
-pdf_searched=0
-pdf_matches=0
+# Only search PDFs if search_pdfs is true
+if [ "{search_pdfs}" = "True" ]; then
+    echo "Searching PDF files..."
+    echo "" >> "{results_file}"
+    echo "## PDF Files" >> "{results_file}"
+    echo "" >> "{results_file}"
 
-# Search PDF files if pdftotext is available (with exclusions)
-if command -v pdftotext &> /dev/null; then
-    find "{folder_path}" {find_exclusions}-type f -name "*.pdf" -print0 2>/dev/null | while IFS= read -r -d '' pdf_file; do
-        ((pdf_searched++))
-        
-        # Display progress indicator for PDFs
-        echo -ne "\rPDF files searched: $pdf_searched | Matches found: $pdf_matches"
-        
-        if pdftotext "$pdf_file" - 2>/dev/null | grep {grep_flags_quiet} "{search_term}"; then
-            ((pdf_matches++))
+    # Reset counters for PDF search
+    pdf_searched=0
+    pdf_matches=0
+
+    # Search PDF files if pdftotext is available (with exclusions)
+    if command -v pdftotext &> /dev/null; then
+        find "{folder_path}" {find_exclusions}-type f -name "*.pdf" -print0 2>/dev/null | while IFS= read -r -d '' pdf_file; do
+            ((pdf_searched++))
+            
+            # Display progress indicator for PDFs
             echo -ne "\rPDF files searched: $pdf_searched | Matches found: $pdf_matches"
             
-            # URL encode the file path for the link
-            encoded_file=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$pdf_file', safe='/'))")
-            
-            # NOTE: Not using a markdown link because VSCode (which we open with) lets us CTRL+CLICK filenames to open them
-            # echo "- [$pdf_file](file://$encoded_file)" >> "{results_file}"
-            echo "- file://$encoded_file" >> "{results_file}"
-        fi
-    done
-    # Final newline after PDF progress indicator
+            if pdftotext "$pdf_file" - 2>/dev/null | grep {grep_flags_quiet} "{search_term}"; then
+                ((pdf_matches++))
+                echo -ne "\rPDF files searched: $pdf_searched | Matches found: $pdf_matches"
+                
+                # URL encode the file path for the link
+                encoded_file=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$pdf_file', safe='/'))")
+                
+                # NOTE: Not using a markdown link because VSCode (which we open with) lets us CTRL+CLICK filenames to open them
+                # echo "- [$pdf_file](file://$encoded_file)" >> "{results_file}"
+                echo "- file://$encoded_file" >> "{results_file}"
+            fi
+        done
+        # Final newline after PDF progress indicator
+        echo ""
+    else
+        echo "(Skipping PDF files - pdftotext not installed)"
+    fi
     echo ""
 else
-    echo "(Skipping PDF files - pdftotext not installed)"
+    echo "(Skipping PDF files - not in included file patterns)"
+    echo ""
 fi
-
-echo ""
 echo "Searching for files and folders with matching names..."
 echo "" >> "{results_file}"
 echo "## Files & Folders" >> "{results_file}"

@@ -4,6 +4,40 @@ Coral uses a YAML configuration file located at `~/.config/coral/coral-config.ya
 
 ## Configuration Options
 
+### Search Inclusions
+
+You can limit searches to specific file types using glob patterns. If the `included` list is empty or omitted, all files are searched (subject to exclusions).
+
+```yaml
+search:
+  included:
+    - "*.md"      # Only search Markdown files
+    - "*.txt"     # And text files
+```
+
+**Note:** When include patterns are specified, only files matching these patterns will be searched for content. The filename search (Files & Folders section) is not affected by include patterns.
+
+#### Common Include Patterns
+
+**Documentation:**
+- `*.md` - Markdown files
+- `*.txt` - Plain text files
+- `*.rst` - ReStructuredText files
+
+**Code:**
+- `*.py` - Python files
+- `*.js` - JavaScript files
+- `*.ts` - TypeScript files
+- `*.java` - Java files
+- `*.cpp` - C++ files
+- `*.h` - Header files
+
+**Leave empty to search all files:**
+```yaml
+search:
+  included: []   # Search all file types
+```
+
 ### Search Exclusions
 
 You can exclude specific directories and files from search results using glob patterns.
@@ -62,6 +96,10 @@ Edit `~/.config/coral/coral-config.yaml` and add patterns to the `excluded` list
 
 ```yaml
 search:
+  included:
+    - "*.md"
+    - "*.txt"
+  
   excluded:
     - "*/node_modules/*"
     - "*/.git/*"
@@ -71,6 +109,47 @@ search:
 ```
 
 Changes take effect immediately on the next search - no need to restart Nautilus.
+
+### Using Include and Exclude Patterns Together
+
+Include and exclude patterns work together to give you fine-grained control over what gets searched:
+
+1. **Exclusions are applied first** - Directories matching exclude patterns are skipped entirely
+2. **Inclusions filter the remaining files** - Only files matching include patterns are searched
+
+**Example: Search only Python files, excluding virtual environments:**
+```yaml
+search:
+  included:
+    - "*.py"           # Only search Python files
+  
+  excluded:
+    - "*/.venv/*"      # Skip virtual environment directories
+    - "*/__pycache__/*"  # Skip cache directories
+```
+
+**Example: Search documentation only:**
+```yaml
+search:
+  included:
+    - "*.md"
+    - "*.txt"
+    - "*.rst"
+  
+  excluded:
+    - "*/node_modules/*"
+    - "*/.git/*"
+```
+
+**Example: Search everything (default behavior):**
+```yaml
+search:
+  included: []         # Empty or omit to search all file types
+  
+  excluded:
+    - "*/node_modules/*"
+    - "*/.git/*"
+```
 
 ## Default Configuration
 
