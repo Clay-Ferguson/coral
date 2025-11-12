@@ -326,6 +326,35 @@ else
 fi
 
 echo ""
+echo "Searching for files and folders with matching names..."
+echo "" >> "{results_file}"
+echo "## Files & Folders" >> "{results_file}"
+echo "" >> "{results_file}"
+
+# Reset counters for filename search
+names_searched=0
+names_matched=0
+
+# Search for files and folders with names matching the search term (literal match)
+find "{folder_path}" {find_exclusions}-iname "*{search_term}*" -print0 2>/dev/null | while IFS= read -r -d '' matched_item; do
+    ((names_searched++))
+    ((names_matched++))
+    
+    # Display progress indicator
+    echo -ne "\rNames searched: $names_searched | Matches found: $names_matched"
+    
+    # URL encode the file path for the link
+    encoded_file=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$matched_item', safe='/'))")
+    
+    # NOTE: Not using a markdown link because VSCode (which we open with) lets us CTRL+CLICK filenames to open them
+    # echo "- [$matched_item](file://$encoded_file)" >> "{results_file}"
+    echo "- file://$encoded_file" >> "{results_file}"
+done
+
+# Final newline after progress indicator
+echo ""
+
+echo ""
 echo "Search complete!"
 
 # Commented out so we just open immediately in VSCode instead of prompting first

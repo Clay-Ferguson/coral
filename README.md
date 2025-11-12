@@ -25,7 +25,7 @@ Creates a new timestamped Markdown file and automatically opens it in VS Code. P
 ### 🔍 Search
 **Available:** On folders and empty space (searches current directory)
 
-Recursively searches for text content within all files in a folder, including inside PDF files. Results are saved to a timestamped markdown file and opened in VS Code with clickable file links.
+Recursively searches for text content within all files in a folder, including inside PDF files, **plus** searches for matching filenames and folder names. Results are saved to a timestamped markdown file and opened in VS Code with clickable file links.
 
 **Three Search Modes:**
 
@@ -51,9 +51,11 @@ The Search menu contains a submenu with three powerful search options:
 
 **Search Features:**
 
-- **Powerful search:** Uses `grep` for regular files and `pdftotext` for PDF content
+- **Comprehensive search:** Searches file content (using `grep` for regular files and `pdftotext` for PDFs) **and** searches filenames and folder names (using `find`)
+- **Filename matching:** Always uses literal/case-insensitive matching for filenames and folder names, regardless of selected search mode
 - **Interactive prompting:** Enter your search term via a friendly `zenity` dialog
 - **Live feedback:** Terminal window shows search progress in real-time
+- **Organized results:** Separate sections for Regular Files, PDF Files, and Files and Folders
 - **Clickable results:** File paths are formatted as `file://` URLs that you can Ctrl+Click in VS Code to open
 - **Persistent history:** Each search creates a timestamped file (e.g., `coral-search--2025-11-05--14-30-45.md`) in `/tmp/coral/`
 - **Chronological sorting:** Search result files are named to sort chronologically, making it easy to review past searches
@@ -108,8 +110,8 @@ Nautilus does already have the ability to run script files, but using this menu 
 ### Creating Documentation
 Right-click in any project folder and select "New Markdown" to instantly create timestamped documentation files. Perfect for meeting notes, feature specifications, or development logs.
 
-### Finding Text Across Your Project
-Right-click on any project folder, hover over "Search", and choose one of three search modes (Literal, Basic Regex, or Extended Regex) based on your needs. Enter your search term to find text content across all files, including inside PDFs. Watch the search progress in the terminal, then the results automatically open in VS Code with clickable file links. Search history is preserved in `/tmp/coral/` with timestamped filenames for easy reference.
+### Finding Text and Files Across Your Project
+Right-click on any project folder, hover over "Search", and choose one of three search modes (Literal, Basic Regex, or Extended Regex) based on your needs. Enter your search term to find text content across all files (including inside PDFs) **and** to find matching filenames and folder names. Watch the search progress in the terminal, then the results automatically open in VS Code with clickable file links organized into three sections: Regular Files, PDF Files, and Files and Folders. Search history is preserved in `/tmp/coral/` with timestamped filenames for easy reference.
 
 ### Quick Code Editing
 Right-click on any text file or folder and select "Open in VS Code" to jump straight into development without navigating through menus or typing terminal commands.
