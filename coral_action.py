@@ -141,6 +141,15 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
                 vscode_item.connect('activate', self.open_in_vscode, file)
                 items.append(vscode_item)
         
+        # Add Open Coral Configs option
+        config_item = Nautilus.MenuItem(
+            name='AddNautilusMenuItems::open_coral_configs',
+            label='Open Coral Configs',
+            tip='Open Coral configuration file in VSCode'
+        )
+        config_item.connect('activate', self.open_coral_configs)
+        items.append(config_item)
+        
         # Add Search submenu for directories (at the end)
         if file.is_directory():
             search_parent = Nautilus.MenuItem(
@@ -224,6 +233,15 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         )
         vscode_item.connect('activate', self.open_in_vscode, current_folder)
         items.append(vscode_item)
+        
+        # Open Coral Configs option
+        config_item = Nautilus.MenuItem(
+            name='AddNautilusMenuItems::open_coral_configs_bg',
+            label='Open Coral Configs',
+            tip='Open Coral configuration file in VSCode'
+        )
+        config_item.connect('activate', self.open_coral_configs)
+        items.append(config_item)
         
         # Search submenu for current folder (at the end)
         search_parent = Nautilus.MenuItem(
@@ -312,5 +330,27 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         while delegating the actual script execution to the ScriptRunner.
         """
         self.script_runner.run_script(menu, file)
+
+    def open_coral_configs(self, menu, file=None):
+        """
+        Open the Coral configuration file in Visual Studio Code.
+        
+        This method opens the YAML configuration file located at
+        ~/.config/coral/coral-config.yaml directly in VSCode, allowing users
+        to quickly edit their Coral settings.
+        
+        Args:
+            menu (Nautilus.MenuItem): The menu item that triggered this action (unused).
+            file (Nautilus.FileInfo, optional): The file context (unused, since we always
+                                               open the config file regardless of context).
+        
+        Behavior:
+            - Opens the config file at ~/.config/coral/coral-config.yaml
+            - Uses the VSCode path specified in VSCODE_PATH constant
+            - Launches VSCode with the config file as the target
+            - Works from any context (file selection or background menu)
+        """
+        config_path = os.path.expanduser('~/.config/coral/coral-config.yaml')
+        subprocess.Popen([self.VSCODE_PATH, config_path])
 
     

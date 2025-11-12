@@ -18,7 +18,6 @@ class ScriptRunner:
         """Initialize the script runner."""
         pass
     
-    # Functions will be moved here by the user
     def run_script(self, menu, file):
         """
         Execute the selected shell script in a new terminal window.

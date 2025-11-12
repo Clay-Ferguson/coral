@@ -25,7 +25,6 @@ class MarkdownHandler:
         """
         self.vscode_path = vscode_path
     
-    # Functions will be moved here by the user
     def _start_markdown_creation(self, folder_path):
         """Kick off the async workflow to prompt for a markdown filename via zenity."""
         timestamp = datetime.now().strftime('%Y-%m-%d--%H-%M-%S')

@@ -22,7 +22,6 @@ class VSCodeHandler:
         """
         self.vscode_path = vscode_path
     
-    # Functions will be moved here by the user
     def open_in_vscode(self, menu, file):
         """
         Open the selected file or folder in Visual Studio Code.

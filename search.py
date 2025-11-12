@@ -54,7 +54,6 @@ class SearchHandler:
         self.vscode_path = vscode_path
         self.config_file = config_file
     
-    # Functions will be moved here by the user
     def _load_config(self):
         """
         Load configuration from YAML file.

@@ -69,7 +69,7 @@ The Search menu contains a submenu with three powerful search options:
 sudo apt install poppler-utils
 ```
 
-### �📂 Open in VS Code
+### 📂 Open in VS Code
 **Available:** On folders, text files, and empty space
 
 Launches Visual Studio Code with the selected item, making it effortless to jump into coding or editing tasks.
