@@ -138,12 +138,20 @@ class SearchHandler:
         if not folder.is_directory():
             folder_path = os.path.dirname(folder_path)
         
+        # Customize the prompt text based on search type
+        if search_type == 'file-or':
+            prompt_text = 'Enter search terms (ORed):\nExample: "ABC" "DEF"\n(finds files containing ANY of the terms)'
+        elif search_type == 'file-and':
+            prompt_text = 'Enter search terms (ANDed):\nExample: "ABC" "DEF"\n(finds files containing ALL of the terms)'
+        else:
+            prompt_text = 'Enter search term:'
+        
         # Prompt for search term using zenity
         argv = [
             'zenity',
             '--entry',
             '--title=Search Files',
-            '--text=Enter search term:',
+            f'--text={prompt_text}',
             '--modal',
             '--width=600',
         ]
