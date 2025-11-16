@@ -190,6 +190,24 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
             extended_item.connect('activate', self.search_folder, file, 'extended')
             search_submenu.append_item(extended_item)
             
+            # File OR search option
+            file_or_item = Nautilus.MenuItem(
+                name='AddNautilusMenuItems::search_file_or',
+                label=f'{self.MENU_ICON}File OR',
+                tip='Search for files containing any of the quoted terms (e.g., "abc" "def")'
+            )
+            file_or_item.connect('activate', self.search_folder, file, 'file-or')
+            search_submenu.append_item(file_or_item)
+            
+            # File AND search option
+            file_and_item = Nautilus.MenuItem(
+                name='AddNautilusMenuItems::search_file_and',
+                label=f'{self.MENU_ICON}File AND',
+                tip='Search for files containing all of the quoted terms (e.g., "abc" "def")'
+            )
+            file_and_item.connect('activate', self.search_folder, file, 'file-and')
+            search_submenu.append_item(file_and_item)
+            
             # Attach submenu to parent
             search_parent.set_submenu(search_submenu)
             items.append(search_parent)
@@ -281,6 +299,24 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         )
         extended_item.connect('activate', self.search_folder, current_folder, 'extended')
         search_submenu.append_item(extended_item)
+        
+        # File OR search option
+        file_or_item = Nautilus.MenuItem(
+            name='AddNautilusMenuItems::search_current_file_or',
+            label=f'{self.MENU_ICON}File OR',
+            tip='Search for files containing any of the quoted terms (e.g., "abc" "def")'
+        )
+        file_or_item.connect('activate', self.search_folder, current_folder, 'file-or')
+        search_submenu.append_item(file_or_item)
+        
+        # File AND search option
+        file_and_item = Nautilus.MenuItem(
+            name='AddNautilusMenuItems::search_current_file_and',
+            label=f'{self.MENU_ICON}File AND',
+            tip='Search for files containing all of the quoted terms (e.g., "abc" "def")'
+        )
+        file_and_item.connect('activate', self.search_folder, current_folder, 'file-and')
+        search_submenu.append_item(file_and_item)
         
         # Attach submenu to parent
         search_parent.set_submenu(search_submenu)
