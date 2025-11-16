@@ -631,21 +631,218 @@ echo "Search complete!"
             print(f'Error executing File OR search: {e}')
     
     def _execute_and_search(self, folder_path, search_term, search_type='file-and'):
-        """Execute a file-level AND search (NOT YET IMPLEMENTED).
-        
-        This is a placeholder for the File AND search functionality.
+        """Execute a file-level AND search where files must contain ALL of the quoted terms.
         
         Args:
             folder_path (str): The folder path to search in.
             search_term (str): The search terms as quoted strings (e.g., "abc" "def").
             search_type (str): The type of search (should be 'file-and').
         """
-        # Show error dialog indicating this feature is not yet implemented
-        subprocess.Popen([
-            'zenity',
-            '--error',
-            '--title=Not Yet Implemented',
-            '--text=File AND search is not yet implemented.\nThis feature is coming soon!',
-            '--width=400'
-        ])
-        print('File AND search feature is not yet implemented')
+        import shlex
+        import tempfile
+        
+        # Parse the quoted terms from the user input
+        try:
+            terms = shlex.split(search_term)
+        except ValueError as e:
+            # Show error dialog if parsing fails
+            subprocess.Popen([
+                'zenity',
+                '--error',
+                '--title=Search Error',
+                '--text=Error parsing search terms. Please use quoted strings like "term1" "term2"',
+                '--width=400'
+            ])
+            print(f'Error parsing search terms: {e}')
+            return
+        
+        # Validate that we have at least 2 terms
+        if len(terms) < 2:
+            subprocess.Popen([
+                'zenity',
+                '--error',
+                '--title=Search Error',
+                '--text=File AND search requires at least 2 quoted terms.\nExample: "abc" "def"',
+                '--width=400'
+            ])
+            return
+        
+        # Escape terms for use in grep (escape special regex characters for literal matching)
+        def escape_for_grep(term):
+            """Escape special regex characters for literal matching in grep."""
+            special_chars = r'\.[]^$*'
+            for char in special_chars:
+                term = term.replace(char, '\\' + char)
+            return term
+        
+        escaped_terms = [escape_for_grep(term) for term in terms]
+        
+        # Get excluded patterns from config
+        excluded_patterns = self._get_search_patterns('excluded')
+        
+        # Get included patterns from config
+        included_patterns = self._get_search_patterns('included')
+        
+        # Build find command exclusions
+        find_exclusions = ''
+        if excluded_patterns:
+            exclusion_parts = []
+            for pattern in excluded_patterns:
+                exclusion_parts.append(f'-path "{pattern}" -prune -o')
+            find_exclusions = ' '.join(exclusion_parts) + ' '
+        
+        # Build find command inclusions for non-PDF files
+        find_inclusions_non_pdf = ''
+        if included_patterns:
+            inclusion_parts = []
+            for pattern in included_patterns:
+                if pattern != '*.pdf':
+                    inclusion_parts.append(f'-name "{pattern}"')
+            
+            if inclusion_parts:
+                find_inclusions_non_pdf = '\\( ' + ' -o '.join(inclusion_parts) + ' \\) '
+        
+        # Determine if PDFs should be searched
+        search_pdfs = not included_patterns or '*.pdf' in included_patterns
+        
+        # Path to the results file with timestamp
+        temp_dir = get_temp_folder()
+        timestamp = datetime.now().strftime('%Y-%m-%d--%H-%M-%S')
+        results_file = os.path.join(temp_dir, f'coral-search--{timestamp}.md')
+        
+        # Display the search terms nicely formatted
+        terms_display = ', '.join([f'"{term}"' for term in terms])
+        
+        # Build the chained grep commands for AND logic
+        # For each file, we need to check if ALL terms are present
+        grep_chain = ' && '.join([f'grep -q -i "{term}" "$file"' for term in escaped_terms])
+        
+        # Create a search script for File AND search
+        script_content = rf'''#!/bin/bash
+echo "File AND Search"
+echo "Searching for files containing ALL of: {terms_display}"
+echo "In folder: {folder_path}"
+echo ""
+echo "# File AND Search Results" > "{results_file}"
+echo "" >> "{results_file}"
+echo "**Search terms (AND):** {terms_display}" >> "{results_file}"
+echo "" >> "{results_file}"
+echo "**Search location:** {folder_path}" >> "{results_file}"
+echo "" >> "{results_file}"
+echo "**Date:** $(date)" >> "{results_file}"
+echo "" >> "{results_file}"
+echo "---" >> "{results_file}"
+echo "" >> "{results_file}"
+
+# Check if pdftotext is available
+if ! command -v pdftotext &> /dev/null; then
+    echo "WARNING: pdftotext not found. PDF files will not be searched."
+    echo "To install pdftotext, run: sudo apt install poppler-utils"
+    echo ""
+    echo "## Note" >> "{results_file}"
+    echo "pdftotext is not installed. PDF files were not searched." >> "{results_file}"
+    echo "To enable PDF searching, run: \`sudo apt install poppler-utils\`" >> "{results_file}"
+    echo "" >> "{results_file}"
+fi
+
+echo "Searching regular files..."
+echo "## Regular Files" >> "{results_file}"
+echo "" >> "{results_file}"
+
+# Initialize counters
+files_searched=0
+matches_found=0
+
+# Search non-PDF files using chained grep commands for AND logic
+find "{folder_path}" {find_exclusions}-type f {find_inclusions_non_pdf}! -name "*.pdf" -print0 2>/dev/null | while IFS= read -r -d '' file; do
+    ((files_searched++))
+    
+    # Display progress indicator
+    echo -ne "\rFiles searched: $files_searched | Matches found: $matches_found"
+    
+    # Check if file contains ALL search terms using chained grep with &&
+    if {grep_chain}; then
+        ((matches_found++))
+        echo -ne "\rFiles searched: $files_searched | Matches found: $matches_found"
+        
+        # URL encode the file path for the link
+        encoded_file=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$file', safe='/'))")
+        
+        echo "- file://$encoded_file" >> "{results_file}"
+    fi
+done
+
+# Final newline after progress indicator
+echo ""
+echo ""
+
+# Only search PDFs if search_pdfs is true
+if [ "{search_pdfs}" = "True" ]; then
+    echo "Searching PDF files..."
+    echo "" >> "{results_file}"
+    echo "## PDF Files" >> "{results_file}"
+    echo "" >> "{results_file}"
+
+    # Reset counters for PDF search
+    pdf_searched=0
+    pdf_matches=0
+
+    # Search PDF files if pdftotext is available
+    if command -v pdftotext &> /dev/null; then
+        find "{folder_path}" {find_exclusions}-type f -name "*.pdf" -print0 2>/dev/null | while IFS= read -r -d '' pdf_file; do
+            ((pdf_searched++))
+            
+            # Display progress indicator for PDFs
+            echo -ne "\rPDF files searched: $pdf_searched | Matches found: $pdf_matches"
+            
+            # Extract PDF text and check if ALL terms are present
+            pdf_text=$(pdftotext "$pdf_file" - 2>/dev/null)
+            all_terms_found=true
+            
+            # Check each term individually
+''' + '\n'.join([f'            if ! echo "$pdf_text" | grep -q -i "{term}"; then\n                all_terms_found=false\n            fi' for term in escaped_terms]) + rf'''
+            
+            if [ "$all_terms_found" = true ]; then
+                ((pdf_matches++))
+                echo -ne "\rPDF files searched: $pdf_searched | Matches found: $pdf_matches"
+                
+                # URL encode the file path for the link
+                encoded_file=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$pdf_file', safe='/'))")
+                
+                echo "- file://$encoded_file" >> "{results_file}"
+            fi
+        done
+        # Final newline after PDF progress indicator
+        echo ""
+    else
+        echo "(Skipping PDF files - pdftotext not installed)"
+    fi
+    echo ""
+else
+    echo "(Skipping PDF files - not in included file patterns)"
+    echo ""
+fi
+
+echo ""
+echo "Search complete!"
+
+# Open results in VSCode
+{self.vscode_path} "{results_file}"
+'''
+        
+        # Write the script to a temporary file
+        script_file = os.path.join(get_temp_folder(), 'coral-search-script.sh')
+        try:
+            with open(script_file, 'w') as f:
+                f.write(script_content)
+            os.chmod(script_file, 0o755)
+            
+            # Execute the script in a new terminal
+            command = [
+                'gnome-terminal',
+                '--',
+                'bash', script_file
+            ]
+            subprocess.Popen(command)
+        except Exception as e:
+            print(f'Error executing File AND search: {e}')
