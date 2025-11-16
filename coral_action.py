@@ -36,6 +36,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
     Class Constants:
         VSCODE_PATH (str): Path to the VSCode executable
         TEXT_FILE_EXTENSIONS (tuple): File extensions considered as text files
+        MENU_ICON (str): Unicode character used as visual marker for Coral menu items
     
     Menu Actions Provided:
         - New Markdown: Creates timestamped markdown files
@@ -45,6 +46,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
     VSCODE_PATH = '/usr/bin/code'
     TEXT_FILE_EXTENSIONS = ('.txt', '.md', '.py', '.js', '.html', '.css', '.json', '.xml', '.yml', '.yaml', '.ini', '.cfg', '.conf')
     CONFIG_FILE = os.path.expanduser('~/.config/coral/coral-config.yaml')
+    MENU_ICON = '●  '
     
     def __init__(self):
         """
@@ -98,7 +100,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         # Always add New Markdown option first (works for any selection)
         new_markdown_item = Nautilus.MenuItem(
             name='AddNautilusMenuItems::new_markdown_from_selection',
-            label='New Markdown',
+            label=f'{self.MENU_ICON}New Markdown',
             tip='Create a new timestamped markdown file and open in VSCode'
         )
         new_markdown_item.connect('activate', self.new_markdown_from_selection, file)
@@ -108,7 +110,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         if not file.is_directory() and file.get_name().endswith('.sh'):
             run_script_item = Nautilus.MenuItem(
                 name='AddNautilusMenuItems::run_script',
-                label='Run Script',
+                label=f'{self.MENU_ICON}Run Script',
                 tip='Run this shell script in a new terminal'
             )
             run_script_item.connect('activate', self.run_script, file)
@@ -118,7 +120,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         if file.is_directory():
             vscode_item = Nautilus.MenuItem(
                 name='AddNautilusMenuItems::open_in_vscode',
-                label='Open in VSCode',
+                label=f'{self.MENU_ICON}Open in VSCode',
                 tip='Open this folder in Visual Studio Code'
             )
             vscode_item.connect('activate', self.open_in_vscode, file)
@@ -135,7 +137,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
             if is_text_file:
                 vscode_item = Nautilus.MenuItem(
                     name='AddNautilusMenuItems::open_file_in_vscode',
-                    label='Open in VSCode',
+                    label=f'{self.MENU_ICON}Open in VSCode',
                     tip='Open this file in Visual Studio Code'
                 )
                 vscode_item.connect('activate', self.open_in_vscode, file)
@@ -144,7 +146,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         # Add Open Coral Configs option
         config_item = Nautilus.MenuItem(
             name='AddNautilusMenuItems::open_coral_configs',
-            label='Open Coral Configs',
+            label=f'{self.MENU_ICON}Open Coral Configs',
             tip='Open Coral configuration file in VSCode'
         )
         config_item.connect('activate', self.open_coral_configs)
@@ -154,7 +156,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         if file.is_directory():
             search_parent = Nautilus.MenuItem(
                 name='AddNautilusMenuItems::search_parent',
-                label='Search',
+                label=f'{self.MENU_ICON}Search',
                 tip='Search options'
             )
             
@@ -164,7 +166,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
             # Literal search option
             literal_item = Nautilus.MenuItem(
                 name='AddNautilusMenuItems::search_literal',
-                label='Literal',
+                label=f'{self.MENU_ICON}Literal',
                 tip='Search for exact text (no special characters)'
             )
             literal_item.connect('activate', self.search_folder, file, 'literal')
@@ -173,7 +175,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
             # Basic regex search option
             regex_item = Nautilus.MenuItem(
                 name='AddNautilusMenuItems::search_regex',
-                label='Basic Regex',
+                label=f'{self.MENU_ICON}Basic Regex',
                 tip='Search using basic regular expressions'
             )
             regex_item.connect('activate', self.search_folder, file, 'regex')
@@ -182,7 +184,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
             # Extended regex search option
             extended_item = Nautilus.MenuItem(
                 name='AddNautilusMenuItems::search_extended',
-                label='Extended Regex',
+                label=f'{self.MENU_ICON}Extended Regex',
                 tip='Search using extended regular expressions (|, +, ?, etc.)'
             )
             extended_item.connect('activate', self.search_folder, file, 'extended')
@@ -219,7 +221,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         # New Markdown file option
         new_markdown_item = Nautilus.MenuItem(
             name='AddNautilusMenuItems::new_markdown',
-            label='New Markdown',
+            label=f'{self.MENU_ICON}New Markdown',
             tip='Create a new timestamped markdown file and open in VSCode'
         )
         new_markdown_item.connect('activate', self.new_markdown, current_folder)
@@ -228,7 +230,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         # Open current folder in VSCode option
         vscode_item = Nautilus.MenuItem(
             name='AddNautilusMenuItems::open_current_in_vscode',
-            label='Open in VSCode',
+            label=f'{self.MENU_ICON}Open in VSCode',
             tip='Open current folder in Visual Studio Code'
         )
         vscode_item.connect('activate', self.open_in_vscode, current_folder)
@@ -237,7 +239,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         # Open Coral Configs option
         config_item = Nautilus.MenuItem(
             name='AddNautilusMenuItems::open_coral_configs_bg',
-            label='Open Coral Configs',
+            label=f'{self.MENU_ICON}Open Coral Configs',
             tip='Open Coral configuration file in VSCode'
         )
         config_item.connect('activate', self.open_coral_configs)
@@ -246,7 +248,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         # Search submenu for current folder (at the end)
         search_parent = Nautilus.MenuItem(
             name='AddNautilusMenuItems::search_current_parent',
-            label='Search',
+            label=f'{self.MENU_ICON}Search',
             tip='Search options'
         )
         
@@ -256,7 +258,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         # Literal search option
         literal_item = Nautilus.MenuItem(
             name='AddNautilusMenuItems::search_current_literal',
-            label='Literal',
+            label=f'{self.MENU_ICON}Literal',
             tip='Search for exact text (no special characters)'
         )
         literal_item.connect('activate', self.search_folder, current_folder, 'literal')
@@ -265,7 +267,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         # Basic regex search option
         regex_item = Nautilus.MenuItem(
             name='AddNautilusMenuItems::search_current_regex',
-            label='Basic Regex',
+            label=f'{self.MENU_ICON}Basic Regex',
             tip='Search using basic regular expressions'
         )
         regex_item.connect('activate', self.search_folder, current_folder, 'regex')
@@ -274,7 +276,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         # Extended regex search option
         extended_item = Nautilus.MenuItem(
             name='AddNautilusMenuItems::search_current_extended',
-            label='Extended Regex',
+            label=f'{self.MENU_ICON}Extended Regex',
             tip='Search using extended regular expressions (|, +, ?, etc.)'
         )
         extended_item.connect('activate', self.search_folder, current_folder, 'extended')
