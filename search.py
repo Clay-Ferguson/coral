@@ -193,14 +193,14 @@ class SearchHandler:
         
         # Route to the appropriate search function based on search_type
         if search_type == 'file-or':
-            self._execute_or_search(folder_path, search_term, search_type)
+            self._or_search(folder_path, search_term, search_type)
         elif search_type == 'file-and':
-            self._execute_and_search(folder_path, search_term, search_type)
+            self._and_search(folder_path, search_term, search_type)
         else:
             # Default to the original line-by-line search
-            self._execute_search(folder_path, search_term, search_type)
+            self._search(folder_path, search_term, search_type)
         
-    def _execute_search(self, folder_path, search_term, search_type='literal'):
+    def _search(self, folder_path, search_term, search_type='literal'):
         """Execute the search command in a terminal.
         
         Args:
@@ -427,7 +427,7 @@ echo "Search complete!"
         except Exception as e:
             print(f'Error executing search: {e}')
     
-    def _execute_or_search(self, folder_path, search_term, search_type='file-or'):
+    def _or_search(self, folder_path, search_term, search_type='file-or'):
         """Execute a file-level OR search where files must contain ANY of the quoted terms.
         
         Args:
@@ -638,7 +638,7 @@ echo "Search complete!"
         except Exception as e:
             print(f'Error executing File OR search: {e}')
     
-    def _execute_and_search(self, folder_path, search_term, search_type='file-and'):
+    def _and_search(self, folder_path, search_term, search_type='file-and'):
         """Execute a file-level AND search where files must contain ALL of the quoted terms.
         
         Args:
@@ -647,7 +647,6 @@ echo "Search complete!"
             search_type (str): The type of search (should be 'file-and').
         """
         import shlex
-        import tempfile
         
         # Parse the quoted terms from the user input
         try:
