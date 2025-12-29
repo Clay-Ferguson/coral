@@ -11,7 +11,6 @@ import os
 import urllib.parse
 import subprocess
 import tempfile
-from datetime import datetime
 from gi.repository import GLib
 
 def get_temp_folder():
@@ -95,6 +94,58 @@ class SearchHandler:
         except Exception as e:
             print(f"Error reading {pattern_type} patterns from config: {e}")
             return []
+    
+    def _get_results_display_script(self, title, search_display):
+        """
+        Generate the bash script portion for displaying search results in zenity.
+        
+        Args:
+            title (str): The title for the zenity window
+            search_display (str): The search term(s) to display in messages
+        
+        Returns:
+            str: Bash script snippet for displaying results and opening files
+        """
+        return rf'''
+echo ""
+echo "Search complete!"
+echo "Found ${{#RESULTS[@]}} results."
+
+# If no results found, show a message and exit
+if [ ${{#RESULTS[@]}} -eq 0 ]; then
+    zenity --info --title="Search Results" --text="No results found for: {search_display}" --width=400
+    exit 0
+fi
+
+# Display results in zenity list and allow multiple selections
+# Keep showing the list until user closes the window
+while true; do
+    selected=$(zenity --list \
+        --title="{title}" \
+        --text="Select a file to open (window stays open for multiple selections):" \
+        --column="File Path" \
+        --width=900 \
+        --height=600 \
+        "${{RESULTS[@]}}")
+    
+    # If user cancelled/closed the window, exit the loop
+    if [ $? -ne 0 ] || [ -z "$selected" ]; then
+        break
+    fi
+    
+    # Open the selected file based on its extension
+    extension="${{selected##*.}}"
+    extension_lower=$(echo "$extension" | tr '[:upper:]' '[:lower:]')
+    
+    if [[ "$extension_lower" == "md" || "$extension_lower" == "txt" ]]; then
+        # Open text/markdown files in VSCode
+        {self.vscode_path} "$selected" &
+    else
+        # Open other files with default application
+        xdg-open "$selected" &
+    fi
+done
+'''
         
     def search_folder(self, menu, folder, search_type='literal'):
         """
@@ -260,51 +311,31 @@ class SearchHandler:
         # If include patterns specified, only search PDFs if *.pdf is in the list
         search_pdfs = not included_patterns or '*.pdf' in included_patterns
         
-        # Path to the results file with timestamp
-        temp_dir = get_temp_folder()
-        timestamp = datetime.now().strftime('%Y-%m-%d--%H-%M-%S')
-        results_file = os.path.join(temp_dir, f'coral-search--{timestamp}.md')
-        
         # Create a search script that will be executed in the terminal
         script_content = rf'''#!/bin/bash
 echo "Searching for: {search_term}"
 echo "Search type: {search_type_label}"
 echo "In folder: {folder_path}"
 echo ""
-echo "# Search Results" > "{results_file}"
-echo "" >> "{results_file}"
-echo "**Search term:** {search_term}" >> "{results_file}"
-echo "" >> "{results_file}"
-echo "**Search type:** {search_type_label}" >> "{results_file}"
-echo "" >> "{results_file}"
-echo "**Search location:** {folder_path}" >> "{results_file}"
-echo "" >> "{results_file}"
-echo "**Date:** $(date)" >> "{results_file}"
-echo "" >> "{results_file}"
-echo "---" >> "{results_file}"
-echo "" >> "{results_file}"
+
+# Initialize results array
+declare -a RESULTS=()
 
 # Check if pdftotext is available
 if ! command -v pdftotext &> /dev/null; then
     echo "WARNING: pdftotext not found. PDF files will not be searched."
     echo "To install pdftotext, run: sudo apt install poppler-utils"
     echo ""
-    echo "## Note" >> "{results_file}"
-    echo "pdftotext is not installed. PDF files were not searched." >> "{results_file}"
-    echo "To enable PDF searching, run: \`sudo apt install poppler-utils\`" >> "{results_file}"
-    echo "" >> "{results_file}"
 fi
 
 echo "Searching regular files..."
-echo "## Regular Files" >> "{results_file}"
-echo "" >> "{results_file}"
 
 # Initialize counters
 files_searched=0
 matches_found=0
 
 # Search non-PDF files with exclusions and show progress
-find "{folder_path}" {find_exclusions}-type f {find_inclusions_non_pdf}! -name "*.pdf" -print0 2>/dev/null | while IFS= read -r -d '' file; do
+while IFS= read -r -d '' file; do
     ((files_searched++))
     
     # Display progress indicator (overwrites same line)
@@ -315,14 +346,10 @@ find "{folder_path}" {find_exclusions}-type f {find_inclusions_non_pdf}! -name "
         ((matches_found++))
         echo -ne "\rFiles searched: $files_searched | Matches found: $matches_found"
         
-        # URL encode the file path for the link
-        encoded_file=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$file', safe='/'))")
-        
-        # NOTE: Not using a markdown link because VSCode (which we open with) lets us CTRL+CLICK filenames to open them
-        # echo "- [$file](file://$encoded_file)" >> "{results_file}"
-        echo "- file://$encoded_file" >> "{results_file}"
+        # Add to results array
+        RESULTS+=("$file")
     fi
-done
+done < <(find "{folder_path}" {find_exclusions}-type f {find_inclusions_non_pdf}! -name "*.pdf" -print0 2>/dev/null)
 
 # Final newline after progress indicator
 echo ""
@@ -335,9 +362,6 @@ if [ "{search_pdfs}" = "True" ]; then
     read -p "Search PDF files? (y/n): " search_pdfs_choice
     if [[ "$search_pdfs_choice" =~ ^[Yy]$ ]]; then
         echo "Searching PDF files..."
-        echo "" >> "{results_file}"
-        echo "## PDF Files" >> "{results_file}"
-        echo "" >> "{results_file}"
 
         # Reset counters for PDF search
         pdf_searched=0
@@ -345,7 +369,7 @@ if [ "{search_pdfs}" = "True" ]; then
 
         # Search PDF files if pdftotext is available (with exclusions)
         if command -v pdftotext &> /dev/null; then
-            find "{folder_path}" {find_exclusions}-type f -name "*.pdf" -print0 2>/dev/null | while IFS= read -r -d '' pdf_file; do
+            while IFS= read -r -d '' pdf_file; do
                 ((pdf_searched++))
                 
                 # Display progress indicator for PDFs
@@ -355,14 +379,10 @@ if [ "{search_pdfs}" = "True" ]; then
                     ((pdf_matches++))
                     echo -ne "\rPDF files searched: $pdf_searched | Matches found: $pdf_matches"
                     
-                    # URL encode the file path for the link
-                    encoded_file=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$pdf_file', safe='/'))")
-                    
-                    # NOTE: Not using a markdown link because VSCode (which we open with) lets us CTRL+CLICK filenames to open them
-                    # echo "- [$pdf_file](file://$encoded_file)" >> "{results_file}"
-                    echo "- file://$encoded_file" >> "{results_file}"
+                    # Add to results array
+                    RESULTS+=("$pdf_file")
                 fi
-            done
+            done < <(find "{folder_path}" {find_exclusions}-type f -name "*.pdf" -print0 2>/dev/null)
             # Final newline after PDF progress indicator
             echo ""
         else
@@ -378,47 +398,37 @@ else
     echo ""
 fi
 echo "Searching for files and folders with matching names..."
-echo "" >> "{results_file}"
-echo "## Files & Folders" >> "{results_file}"
-echo "" >> "{results_file}"
 
 # Reset counters for filename search
 names_searched=0
 names_matched=0
 
 # Search for files and folders with names matching the search term (literal match)
-find "{folder_path}" {find_exclusions}-iname "*{search_term}*" -print0 2>/dev/null | while IFS= read -r -d '' matched_item; do
+while IFS= read -r -d '' matched_item; do
     ((names_searched++))
     ((names_matched++))
     
     # Display progress indicator
     echo -ne "\rNames searched: $names_searched | Matches found: $names_matched"
     
-    # URL encode the file path for the link
-    encoded_file=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$matched_item', safe='/'))")
-    
-    # NOTE: Not using a markdown link because VSCode (which we open with) lets us CTRL+CLICK filenames to open them
-    # echo "- [$matched_item](file://$encoded_file)" >> "{results_file}"
-    echo "- file://$encoded_file" >> "{results_file}"
-done
+    # Add to results array
+    RESULTS+=("$matched_item")
+done < <(find "{folder_path}" {find_exclusions}-iname "*{search_term}*" -print0 2>/dev/null)
 
 # Final newline after progress indicator
 echo ""
-
-echo ""
-echo "Search complete!"
-
-# Commented out so we just open immediately in VSCode instead of prompting first
-# echo ""
-# echo "Results written to: {results_file}"
-# echo ""
-# read -p "Press ENTER to open results in VSCode..."
-
-# Open results in VSCode
-{self.vscode_path} "{results_file}"
-'''
+''' + self._get_results_display_script(f'Search Results for: {search_term}', search_term)
         
-        # Write the script to a temporary file
+        self._execute_search_script(script_content, 'search')
+    
+    def _execute_search_script(self, script_content, search_type_name):
+        """
+        Write and execute a search script in a terminal.
+        
+        Args:
+            script_content (str): The bash script content to execute
+            search_type_name (str): Name of the search type for error messages
+        """
         script_file = os.path.join(get_temp_folder(), 'coral-search-script.sh')
         try:
             with open(script_file, 'w') as f:
@@ -433,7 +443,7 @@ echo "Search complete!"
             ]
             subprocess.Popen(command)
         except Exception as e:
-            print(f'Error executing search: {e}')
+            print(f'Error executing {search_type_name}: {e}')
     
     def _or_search(self, folder_path, search_term, search_type='file-or'):
         """Execute a file-level OR search where files must contain ANY of the quoted terms.
@@ -514,11 +524,6 @@ echo "Search complete!"
         # Determine if PDFs should be searched
         search_pdfs = not included_patterns or '*.pdf' in included_patterns
         
-        # Path to the results file with timestamp
-        temp_dir = get_temp_folder()
-        timestamp = datetime.now().strftime('%Y-%m-%d--%H-%M-%S')
-        results_file = os.path.join(temp_dir, f'coral-search--{timestamp}.md')
-        
         # Display the search terms nicely formatted
         terms_display = ', '.join([f'"{term}"' for term in terms])
         
@@ -528,38 +533,25 @@ echo "File OR Search"
 echo "Searching for files containing ANY of: {terms_display}"
 echo "In folder: {folder_path}"
 echo ""
-echo "# File OR Search Results" > "{results_file}"
-echo "" >> "{results_file}"
-echo "**Search terms (OR):** {terms_display}" >> "{results_file}"
-echo "" >> "{results_file}"
-echo "**Search location:** {folder_path}" >> "{results_file}"
-echo "" >> "{results_file}"
-echo "**Date:** $(date)" >> "{results_file}"
-echo "" >> "{results_file}"
-echo "---" >> "{results_file}"
-echo "" >> "{results_file}"
+
+# Initialize results array
+declare -a RESULTS=()
 
 # Check if pdftotext is available
 if ! command -v pdftotext &> /dev/null; then
     echo "WARNING: pdftotext not found. PDF files will not be searched."
     echo "To install pdftotext, run: sudo apt install poppler-utils"
     echo ""
-    echo "## Note" >> "{results_file}"
-    echo "pdftotext is not installed. PDF files were not searched." >> "{results_file}"
-    echo "To enable PDF searching, run: \`sudo apt install poppler-utils\`" >> "{results_file}"
-    echo "" >> "{results_file}"
 fi
 
 echo "Searching regular files..."
-echo "## Regular Files" >> "{results_file}"
-echo "" >> "{results_file}"
 
 # Initialize counters
 files_searched=0
 matches_found=0
 
 # Search non-PDF files using grep with OR pattern (|)
-find "{folder_path}" {find_exclusions}-type f {find_inclusions_non_pdf}! -name "*.pdf" -print0 2>/dev/null | while IFS= read -r -d '' file; do
+while IFS= read -r -d '' file; do
     ((files_searched++))
     
     # Display progress indicator
@@ -570,12 +562,10 @@ find "{folder_path}" {find_exclusions}-type f {find_inclusions_non_pdf}! -name "
         ((matches_found++))
         echo -ne "\rFiles searched: $files_searched | Matches found: $matches_found"
         
-        # URL encode the file path for the link
-        encoded_file=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$file', safe='/'))")
-        
-        echo "- file://$encoded_file" >> "{results_file}"
+        # Add to results array
+        RESULTS+=("$file")
     fi
-done
+done < <(find "{folder_path}" {find_exclusions}-type f {find_inclusions_non_pdf}! -name "*.pdf" -print0 2>/dev/null)
 
 # Final newline after progress indicator
 echo ""
@@ -588,9 +578,6 @@ if [ "{search_pdfs}" = "True" ]; then
     read -p "Search PDF files? (y/n): " search_pdfs_choice
     if [[ "$search_pdfs_choice" =~ ^[Yy]$ ]]; then
         echo "Searching PDF files..."
-        echo "" >> "{results_file}"
-        echo "## PDF Files" >> "{results_file}"
-        echo "" >> "{results_file}"
 
         # Reset counters for PDF search
         pdf_searched=0
@@ -598,7 +585,7 @@ if [ "{search_pdfs}" = "True" ]; then
 
         # Search PDF files if pdftotext is available
         if command -v pdftotext &> /dev/null; then
-            find "{folder_path}" {find_exclusions}-type f -name "*.pdf" -print0 2>/dev/null | while IFS= read -r -d '' pdf_file; do
+            while IFS= read -r -d '' pdf_file; do
                 ((pdf_searched++))
                 
                 # Display progress indicator for PDFs
@@ -609,12 +596,10 @@ if [ "{search_pdfs}" = "True" ]; then
                     ((pdf_matches++))
                     echo -ne "\rPDF files searched: $pdf_searched | Matches found: $pdf_matches"
                     
-                    # URL encode the file path for the link
-                    encoded_file=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$pdf_file', safe='/'))")
-                    
-                    echo "- file://$encoded_file" >> "{results_file}"
+                    # Add to results array
+                    RESULTS+=("$pdf_file")
                 fi
-            done
+            done < <(find "{folder_path}" {find_exclusions}-type f -name "*.pdf" -print0 2>/dev/null)
             # Final newline after PDF progress indicator
             echo ""
         else
@@ -630,29 +615,9 @@ else
     echo ""
 fi
 
-echo ""
-echo "Search complete!"
-
-# Open results in VSCode
-{self.vscode_path} "{results_file}"
-'''
+''' + self._get_results_display_script(f'File OR Search Results: {terms_display}', terms_display)
         
-        # Write the script to a temporary file
-        script_file = os.path.join(get_temp_folder(), 'coral-search-script.sh')
-        try:
-            with open(script_file, 'w') as f:
-                f.write(script_content)
-            os.chmod(script_file, 0o755)
-            
-            # Execute the script in a new terminal
-            command = [
-                'gnome-terminal',
-                '--',
-                'bash', script_file
-            ]
-            subprocess.Popen(command)
-        except Exception as e:
-            print(f'Error executing File OR search: {e}')
+        self._execute_search_script(script_content, 'File OR')
     
     def _and_search(self, folder_path, search_term, search_type='file-and'):
         """Execute a file-level AND search where files must contain ALL of the quoted terms.
@@ -728,11 +693,6 @@ echo "Search complete!"
         # Determine if PDFs should be searched
         search_pdfs = not included_patterns or '*.pdf' in included_patterns
         
-        # Path to the results file with timestamp
-        temp_dir = get_temp_folder()
-        timestamp = datetime.now().strftime('%Y-%m-%d--%H-%M-%S')
-        results_file = os.path.join(temp_dir, f'coral-search--{timestamp}.md')
-        
         # Display the search terms nicely formatted
         terms_display = ', '.join([f'"{term}"' for term in terms])
         
@@ -746,38 +706,25 @@ echo "File AND Search"
 echo "Searching for files containing ALL of: {terms_display}"
 echo "In folder: {folder_path}"
 echo ""
-echo "# File AND Search Results" > "{results_file}"
-echo "" >> "{results_file}"
-echo "**Search terms (AND):** {terms_display}" >> "{results_file}"
-echo "" >> "{results_file}"
-echo "**Search location:** {folder_path}" >> "{results_file}"
-echo "" >> "{results_file}"
-echo "**Date:** $(date)" >> "{results_file}"
-echo "" >> "{results_file}"
-echo "---" >> "{results_file}"
-echo "" >> "{results_file}"
+
+# Initialize results array
+declare -a RESULTS=()
 
 # Check if pdftotext is available
 if ! command -v pdftotext &> /dev/null; then
     echo "WARNING: pdftotext not found. PDF files will not be searched."
     echo "To install pdftotext, run: sudo apt install poppler-utils"
     echo ""
-    echo "## Note" >> "{results_file}"
-    echo "pdftotext is not installed. PDF files were not searched." >> "{results_file}"
-    echo "To enable PDF searching, run: \`sudo apt install poppler-utils\`" >> "{results_file}"
-    echo "" >> "{results_file}"
 fi
 
 echo "Searching regular files..."
-echo "## Regular Files" >> "{results_file}"
-echo "" >> "{results_file}"
 
 # Initialize counters
 files_searched=0
 matches_found=0
 
 # Search non-PDF files using chained grep commands for AND logic
-find "{folder_path}" {find_exclusions}-type f {find_inclusions_non_pdf}! -name "*.pdf" -print0 2>/dev/null | while IFS= read -r -d '' file; do
+while IFS= read -r -d '' file; do
     ((files_searched++))
     
     # Display progress indicator
@@ -788,12 +735,10 @@ find "{folder_path}" {find_exclusions}-type f {find_inclusions_non_pdf}! -name "
         ((matches_found++))
         echo -ne "\rFiles searched: $files_searched | Matches found: $matches_found"
         
-        # URL encode the file path for the link
-        encoded_file=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$file', safe='/'))")
-        
-        echo "- file://$encoded_file" >> "{results_file}"
+        # Add to results array
+        RESULTS+=("$file")
     fi
-done
+done < <(find "{folder_path}" {find_exclusions}-type f {find_inclusions_non_pdf}! -name "*.pdf" -print0 2>/dev/null)
 
 # Final newline after progress indicator
 echo ""
@@ -806,9 +751,6 @@ if [ "{search_pdfs}" = "True" ]; then
     read -p "Search PDF files? (y/n): " search_pdfs_choice
     if [[ "$search_pdfs_choice" =~ ^[Yy]$ ]]; then
         echo "Searching PDF files..."
-        echo "" >> "{results_file}"
-        echo "## PDF Files" >> "{results_file}"
-        echo "" >> "{results_file}"
 
         # Reset counters for PDF search
         pdf_searched=0
@@ -816,7 +758,7 @@ if [ "{search_pdfs}" = "True" ]; then
 
         # Search PDF files if pdftotext is available
         if command -v pdftotext &> /dev/null; then
-            find "{folder_path}" {find_exclusions}-type f -name "*.pdf" -print0 2>/dev/null | while IFS= read -r -d '' pdf_file; do
+            while IFS= read -r -d '' pdf_file; do
                 ((pdf_searched++))
                 
                 # Display progress indicator for PDFs
@@ -833,12 +775,10 @@ if [ "{search_pdfs}" = "True" ]; then
                     ((pdf_matches++))
                     echo -ne "\rPDF files searched: $pdf_searched | Matches found: $pdf_matches"
                     
-                    # URL encode the file path for the link
-                    encoded_file=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$pdf_file', safe='/'))")
-                    
-                    echo "- file://$encoded_file" >> "{results_file}"
+                    # Add to results array
+                    RESULTS+=("$pdf_file")
                 fi
-            done
+            done < <(find "{folder_path}" {find_exclusions}-type f -name "*.pdf" -print0 2>/dev/null)
             # Final newline after PDF progress indicator
             echo ""
         else
@@ -854,26 +794,6 @@ else
     echo ""
 fi
 
-echo ""
-echo "Search complete!"
-
-# Open results in VSCode
-{self.vscode_path} "{results_file}"
-'''
+''' + self._get_results_display_script(f'File AND Search Results: {terms_display}', terms_display)
         
-        # Write the script to a temporary file
-        script_file = os.path.join(get_temp_folder(), 'coral-search-script.sh')
-        try:
-            with open(script_file, 'w') as f:
-                f.write(script_content)
-            os.chmod(script_file, 0o755)
-            
-            # Execute the script in a new terminal
-            command = [
-                'gnome-terminal',
-                '--',
-                'bash', script_file
-            ]
-            subprocess.Popen(command)
-        except Exception as e:
-            print(f'Error executing File AND search: {e}')
+        self._execute_search_script(script_content, 'File AND')
