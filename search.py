@@ -99,6 +99,15 @@ class SearchHandler:
         """
         Generate the bash script portion for displaying search results in zenity.
         
+        This method generates a script that:
+        1. Saves search results to a temp file
+        2. Creates a separate background script for the zenity results dialog loop
+        3. Launches the background script detached (so it runs without a terminal)
+        4. Exits the main script, allowing the terminal to close naturally
+        
+        This approach means the terminal is visible during the search (showing progress),
+        but once complete, only the zenity dialog remains visible.
+        
         Args:
             title (str): The title for the zenity window
             search_display (str): The search term(s) to display in messages
@@ -107,6 +116,11 @@ class SearchHandler:
         Returns:
             str: Bash script snippet for displaying results and opening files
         """
+        # Get the temp folder path for storing results and the zenity script
+        temp_folder = get_temp_folder()
+        results_file = os.path.join(temp_folder, 'coral-search-results.txt')
+        zenity_script = os.path.join(temp_folder, 'coral-zenity-loop.sh')
+        
         return rf'''
 echo ""
 echo "Search complete!"
@@ -118,9 +132,27 @@ if [ ${{#RESULTS[@]}} -eq 0 ]; then
     exit 0
 fi
 
-# Create arrays for display (relative paths) and full paths
-# We'll use a two-column zenity list: relative path (visible) and full path (hidden for lookup)
+# Save results to a temp file (one path per line)
+RESULTS_FILE="{results_file}"
+printf '%s\n' "${{RESULTS[@]}}" > "$RESULTS_FILE"
+
+# Create a separate script for the zenity dialog loop
+# This script will run detached from any terminal
+cat > "{zenity_script}" << 'ZENITY_SCRIPT_EOF'
+#!/bin/bash
+
+RESULTS_FILE="{results_file}"
 SEARCH_ROOT="{folder_path}"
+VSCODE_PATH="{self.vscode_path}"
+TITLE="{title}"
+
+# Read results from temp file into array
+declare -a RESULTS=()
+while IFS= read -r line; do
+    RESULTS+=("$line")
+done < "$RESULTS_FILE"
+
+# Create arrays for display (relative paths) and full paths
 declare -a DISPLAY_PATHS=()
 declare -A PATH_MAP=()  # Associative array to map relative -> full path
 
@@ -135,7 +167,7 @@ done
 # Keep showing the list until user closes the window
 while true; do
     selected=$(zenity --list \
-        --title="{title}" \
+        --title="$TITLE" \
         --text="Select a file to open (window stays open for multiple selections):\nRoot: {folder_path}" \
         --column="File Path (relative to search root)" \
         --width=900 \
@@ -156,12 +188,32 @@ while true; do
     
     if [[ "$extension_lower" == "md" || "$extension_lower" == "txt" ]]; then
         # Open text/markdown files in VSCode
-        {self.vscode_path} "$full_path" &
+        "$VSCODE_PATH" "$full_path" &
     else
         # Open other files with default application
         xdg-open "$full_path" &
     fi
 done
+
+# Clean up temp files
+rm -f "$RESULTS_FILE"
+rm -f "{zenity_script}"
+ZENITY_SCRIPT_EOF
+
+chmod +x "{zenity_script}"
+
+echo ""
+echo "Launching results dialog..."
+
+# Launch the zenity script as a fully detached background process
+# Using nohup and redirecting all output to /dev/null ensures it's completely detached
+nohup "{zenity_script}" > /dev/null 2>&1 &
+
+# Small delay to ensure the background process starts before terminal closes
+sleep 0.3
+
+# Exit the terminal script - terminal window will close naturally
+exit 0
 '''
         
     def search_folder(self, menu, folder, search_type='literal'):
