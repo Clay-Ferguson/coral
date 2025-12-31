@@ -95,13 +95,14 @@ class SearchHandler:
             print(f"Error reading {pattern_type} patterns from config: {e}")
             return []
     
-    def _get_results_display_script(self, title, search_display):
+    def _get_results_display_script(self, title, search_display, folder_path):
         """
         Generate the bash script portion for displaying search results in zenity.
         
         Args:
             title (str): The title for the zenity window
             search_display (str): The search term(s) to display in messages
+            folder_path (str): The root folder path for computing relative paths
         
         Returns:
             str: Bash script snippet for displaying results and opening files
@@ -117,32 +118,48 @@ if [ ${{#RESULTS[@]}} -eq 0 ]; then
     exit 0
 fi
 
+# Create arrays for display (relative paths) and full paths
+# We'll use a two-column zenity list: relative path (visible) and full path (hidden for lookup)
+SEARCH_ROOT="{folder_path}"
+declare -a DISPLAY_PATHS=()
+declare -A PATH_MAP=()  # Associative array to map relative -> full path
+
+for full_path in "${{RESULTS[@]}}"; do
+    # Compute relative path by stripping the search root prefix
+    relative_path="${{full_path#$SEARCH_ROOT/}}"
+    DISPLAY_PATHS+=("$relative_path")
+    PATH_MAP["$relative_path"]="$full_path"
+done
+
 # Display results in zenity list and allow multiple selections
 # Keep showing the list until user closes the window
 while true; do
     selected=$(zenity --list \
         --title="{title}" \
-        --text="Select a file to open (window stays open for multiple selections):" \
-        --column="File Path" \
+        --text="Select a file to open (window stays open for multiple selections):\nRoot: {folder_path}" \
+        --column="File Path (relative to search root)" \
         --width=900 \
         --height=600 \
-        "${{RESULTS[@]}}")
+        "${{DISPLAY_PATHS[@]}}")
     
     # If user cancelled/closed the window, exit the loop
     if [ $? -ne 0 ] || [ -z "$selected" ]; then
         break
     fi
     
+    # Get the full path from the selected relative path
+    full_path="${{PATH_MAP[$selected]}}"
+    
     # Open the selected file based on its extension
-    extension="${{selected##*.}}"
+    extension="${{full_path##*.}}"
     extension_lower=$(echo "$extension" | tr '[:upper:]' '[:lower:]')
     
     if [[ "$extension_lower" == "md" || "$extension_lower" == "txt" ]]; then
         # Open text/markdown files in VSCode
-        {self.vscode_path} "$selected" &
+        {self.vscode_path} "$full_path" &
     else
         # Open other files with default application
-        xdg-open "$selected" &
+        xdg-open "$full_path" &
     fi
 done
 '''
@@ -417,7 +434,7 @@ done < <(find "{folder_path}" {find_exclusions}-iname "*{search_term}*" -print0 
 
 # Final newline after progress indicator
 echo ""
-''' + self._get_results_display_script(f'Search Results for: {search_term}', search_term)
+''' + self._get_results_display_script(f'Search Results for: {search_term}', search_term, folder_path)
         
         self._execute_search_script(script_content, 'search')
     
@@ -615,7 +632,7 @@ else
     echo ""
 fi
 
-''' + self._get_results_display_script(f'File OR Search Results: {terms_display}', terms_display)
+''' + self._get_results_display_script(f'File OR Search Results: {terms_display}', terms_display, folder_path)
         
         self._execute_search_script(script_content, 'File OR')
     
@@ -794,6 +811,6 @@ else
     echo ""
 fi
 
-''' + self._get_results_display_script(f'File AND Search Results: {terms_display}', terms_display)
+''' + self._get_results_display_script(f'File AND Search Results: {terms_display}', terms_display, folder_path)
         
         self._execute_search_script(script_content, 'File AND')
