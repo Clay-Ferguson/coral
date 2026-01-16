@@ -4,15 +4,11 @@ A developer-focused extension for Nautilus file manager that adds convenient con
 
 Coral consists of four menu items added to the Nautilus right-click popup menu as shown in the image below: New Markdown, Search, Open in VSCode, and Run Script. The Coral Nautilus extension adds the ability to create a new markdown file in any folder using a single mouse click (a nice productivity aid), recursively search for text content across all files including PDFs, open VSCode projects with a single click, as well as the ability to run shell scripts with a single click. All of these tasks are very common for developers, and it's nice to have these embedded on a menu for a single click right inside Nautilus. 
 
-![Menu Screenshot](menu.png)
-
-## Overview
-
 Coral seamlessly integrates with Nautilus to provide quick access to common developer tasks directly from the file manager's context menu. No more switching between applications or remembering complex terminal commands - everything you need is just a right-click away.
 
-## Features
+![Menu Screenshot](menu.png)
 
-### 🆕 New Markdown
+## 🆕 New Markdown (Menu Item)
 **Available:** Everywhere (right-click on files, folders, or empty space)
 
 Creates a new timestamped Markdown file and automatically opens it in VS Code. Perfect for quick note-taking, documentation, or capturing ideas on the fly.
@@ -22,7 +18,7 @@ Creates a new timestamped Markdown file and automatically opens it in VS Code. P
 - **Automatic timestamping:** Files are named with the current date and time (YYYY-MM-DD--HH-MM-SS format)
 - **Instant editing:** Opens immediately in VS Code for seamless workflow
 
-### 🔍 Search
+## 🔍 Search (Menu Item)
 **Available:** On folders and empty space (searches current directory)
 
 ![](search.png)
@@ -70,7 +66,7 @@ The Search menu contains a submenu with three powerful search options:
 sudo apt install poppler-utils
 ```
 
-### 📂 Open in VS Code
+## 📂 Open in VS Code (Menu Item)
 **Available:** On folders, text files, and empty space
 
 Launches Visual Studio Code with the selected item, making it effortless to jump into coding or editing tasks.
@@ -80,7 +76,7 @@ Launches Visual Studio Code with the selected item, making it effortless to jump
 - **Smart detection:** Recognizes common developer file formats (.txt, .md, .py, .js, .html, .css, .json, .xml, .yml, .yaml, .ini, .cfg, .conf, and more)
 - **Empty space option:** Opens the current directory when right-clicking on empty space
 
-### ⚡ Run Script
+### ⚡ Run Script (Menu Item)
 **Available:** On shell script files (.sh)
 
 Executes shell scripts in a new terminal window, complete with proper directory context and user-friendly output.
@@ -106,26 +102,6 @@ Nautilus does already have the ability to run script files, but using this menu 
 
 3. Open a new Nautilus window and start using your new context menu options!
 
-## Usage Examples
-
-### Creating Documentation
-Right-click in any project folder and select "New Markdown" to instantly create timestamped documentation files. Perfect for meeting notes, feature specifications, or development logs.
-
-### Finding Text and Files Across Your Project
-Right-click on any project folder, hover over "Search", and choose one of three search modes (Literal, Basic Regex, or Extended Regex) based on your needs. Enter your search term to find text content across all files (including inside PDFs) **and** to find matching filenames and folder names. Watch the search progress in the terminal, then browse through the results in an interactive pick list. Click on any file to open it—the list stays open so you can open multiple files. Markdown and text files open in VS Code, while other files (like PDFs) open in their default applications.
-
-### Quick Code Editing
-Right-click on any text file or folder and select "Open in VS Code" to jump straight into development without navigating through menus or typing terminal commands.
-
-### Script Execution
-Right-click on any shell script and select "Run Script" to execute it with full terminal output. Great for build scripts, deployment tools, or utility scripts.
-
-## Smart Behaviors
-
-- **Context-aware file creation:** New Markdown files are placed intelligently based on your selection
-- **File type detection:** Automatically recognizes text files using both file extensions and MIME types
-- **Developer-friendly formats:** Supports all common development file types out of the box
-
 ## Requirements
 
 - Nautilus file manager
@@ -134,10 +110,3 @@ Right-click on any shell script and select "Run Script" to execute it with full 
 - zenity (for graphical prompts)
 - poppler-utils (optional, for PDF search support - install with `sudo apt install poppler-utils`)
 
-## Why Coral?
-
-Coral transforms Nautilus from a simple file browser into a developer's command center. By reducing friction between file management and development tasks, Coral helps you maintain focus and productivity throughout your coding sessions.
-
----
-
-*Coral - Enhancing your oceanic file management experience* 🪸
