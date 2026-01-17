@@ -12,6 +12,7 @@ from search import SearchHandler
 from new_markdown import MarkdownHandler
 from open_in_vscode import VSCodeHandler
 from run_script import ScriptRunner
+from run_script_for_folder import OpenFolderHandler
 
 # Try to import yaml for config file support
 try:
@@ -62,6 +63,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         self.markdown_handler = MarkdownHandler(self.VSCODE_PATH)
         self.vscode_handler = VSCodeHandler(self.VSCODE_PATH)
         self.script_runner = ScriptRunner()
+        self.open_folder_handler = OpenFolderHandler(self.CONFIG_FILE)
 
 
     def get_file_items(self, files):
@@ -185,6 +187,19 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
             )
             vscode_item.connect('activate', self.open_in_vscode, file)
             items.append(vscode_item)
+            
+            # Add menu items for each script defined in the config
+            scripts = self.open_folder_handler.get_scripts()
+            for script in scripts:
+                script_name = script.get('name', '')
+                if script_name:
+                    script_item = Nautilus.MenuItem(
+                        name=f'AddNautilusMenuItems::run_script_{script_name}',
+                        label=f'{self.MENU_ICON}{script_name}',
+                        tip=f'Run {script_name} script on this folder'
+                    )
+                    script_item.connect('activate', self.run_script_for_folder, file, script_name)
+                    items.append(script_item)
         elif not file.is_directory():
             # Check if it's a text file using mimetypes
             filename = file.get_name()
@@ -368,6 +383,20 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         while delegating the actual script execution to the ScriptRunner.
         """
         self.script_runner.run_script(menu, file)
+
+    def run_script_for_folder(self, menu, folder, script_name):
+        """
+        Delegate to the open folder handler for running scripts on folders.
+        
+        This is a wrapper method that maintains the existing menu interface
+        while delegating the actual script execution to the OpenFolderHandler.
+        
+        Args:
+            menu (Nautilus.MenuItem): The menu item that triggered this action.
+            folder (Nautilus.FileInfo): The folder to pass to the script.
+            script_name (str): The name of the script to run from the config.
+        """
+        self.open_folder_handler.run_script_for_folder(menu, folder, script_name)
 
     def open_coral_configs(self, menu, file=None):
         """

@@ -88,6 +88,76 @@ Executes shell scripts in a new terminal window, complete with proper directory 
 
 Nautilus does already have the ability to run script files, but using this menu makes it much easier because it takes only a single click.
 
+## 📜 Custom Scripts (YAML-Defined)
+**Available:** On folders
+
+Define your own custom scripts in the Coral configuration file, and they'll automatically appear as menu items! This powerful feature lets you run any shell command against a selected folder with a single click.
+
+### How It Works
+
+1. Open your Coral config file by right-clicking and selecting **Open Coral Configs**
+2. Define scripts under the `scripts` key in the YAML
+3. Each script gets its own menu item, appearing right after "Open in VSCode"
+4. When you click a script menu item, it runs with `$OPEN_FOLDER` replaced by the selected folder path
+
+### YAML Format
+
+```yaml
+scripts:
+  - name: script-name
+    content: |
+      your shell commands here
+      with $OPEN_FOLDER as the target folder
+```
+
+- **name**: The label that appears on the menu (keep it short and descriptive)
+- **content**: The shell script to execute (use `|` for multiline scripts)
+- **$OPEN_FOLDER**: This variable is automatically replaced with the selected folder path
+
+### Example Configuration
+
+```yaml
+scripts:
+  # Launch VS Code in a secure Firejail sandbox
+  - name: vscode-sandbox
+    content: |
+      firejail --noprofile \
+        --whitelist=~/.vscode \
+        --whitelist=~/.config/Code \
+        --whitelist=$OPEN_FOLDER \
+        code $OPEN_FOLDER
+
+  # Run a Node.js project
+  - name: npm-start
+    content: |
+      cd $OPEN_FOLDER && npm start
+
+  # Open a terminal in the folder
+  - name: terminal
+    content: |
+      gnome-terminal --working-directory=$OPEN_FOLDER
+```
+
+With this configuration, you'll see three new menu items when right-clicking on folders:
+- **● vscode-sandbox** - Opens VS Code in a sandboxed environment
+- **● npm-start** - Runs `npm start` in the selected folder
+- **● terminal** - Opens a new terminal window in that folder
+
+### Use Cases
+
+- **Security sandboxing:** Run applications with restricted file access using Firejail
+- **Project launchers:** Start development servers, build processes, or test suites
+- **Quick terminals:** Open terminals pre-configured with the right working directory
+- **Custom tooling:** Run linters, formatters, or any CLI tools against a folder
+- **Deployment scripts:** Trigger deployment or sync operations for specific projects
+
+### Notes
+
+- Scripts are executed via `bash -c`, so standard bash syntax applies
+- The `$OPEN_FOLDER` path is automatically quoted to handle spaces and special characters
+- Use backslashes (`\`) at the end of lines for readable multiline commands
+- Scripts run in the background (non-blocking) so Nautilus remains responsive
+
 ## Installation
 
 1. Run the setup script:
