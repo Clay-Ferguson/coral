@@ -10,7 +10,6 @@ from gi.repository import Nautilus, GObject, GLib
 # Import our handlers
 from search import SearchHandler
 from new_markdown import MarkdownHandler
-from open_in_vscode import VSCodeHandler
 from run_script import ScriptRunner
 from run_script_for_folder import OpenFolderHandler
 
@@ -28,7 +27,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
     
     This extension provides convenient right-click menu options for developers working
     with files and folders in the GNOME Nautilus file manager. It supports creating
-    markdown files, opening files/folders in VSCode, and executing shell scripts.
+    markdown files, running custom scripts on folders, and executing shell scripts.
     
     Inherits from:
         GObject.GObject: Base class for GObject-based objects
@@ -41,7 +40,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
     
     Menu Actions Provided:
         - New Markdown: Creates timestamped markdown files
-        - Open in VSCode: Opens files/folders in Visual Studio Code
+        - Custom Scripts: Run user-defined scripts on folders (configured via YAML)
         - Run Script: Executes shell scripts in a new terminal
     """
     VSCODE_PATH = '/usr/bin/code'
@@ -61,7 +60,6 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         # Initialize the handlers
         self.search_handler = SearchHandler(self.VSCODE_PATH, self.CONFIG_FILE)
         self.markdown_handler = MarkdownHandler(self.VSCODE_PATH)
-        self.vscode_handler = VSCodeHandler(self.VSCODE_PATH)
         self.script_runner = ScriptRunner()
         self.open_folder_handler = OpenFolderHandler(self.CONFIG_FILE)
 
@@ -86,7 +84,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
             - New Markdown: Always available for any single selection
             - Search: Available for directories to perform recursive text search
             - Run Script: Available for .sh files
-            - Open in VSCode: Available for directories and text files
+            - Custom Scripts: Available for directories (configured via YAML)
         
         File Type Detection:
             Uses dual detection strategy:
@@ -178,16 +176,8 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
             run_script_item.connect('activate', self.run_script, file)
             items.append(run_script_item)
         
-        # Check if it's a folder or a text file
+        # Check if it's a folder - add script menu items
         if file.is_directory():
-            vscode_item = Nautilus.MenuItem(
-                name='AddNautilusMenuItems::open_in_vscode',
-                label=f'{self.MENU_ICON}Open in VSCode',
-                tip='Open this folder in Visual Studio Code'
-            )
-            vscode_item.connect('activate', self.open_in_vscode, file)
-            items.append(vscode_item)
-            
             # Add menu items for each script defined in the config
             scripts = self.open_folder_handler.get_scripts()
             for script in scripts:
@@ -200,23 +190,6 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
                     )
                     script_item.connect('activate', self.run_script_for_folder, file, script_name)
                     items.append(script_item)
-        elif not file.is_directory():
-            # Check if it's a text file using mimetypes
-            filename = file.get_name()
-            mimetype, _ = mimetypes.guess_type(filename)
-            
-            # Consider it a text file if mimetype starts with 'text/' or if it's a known text extension
-            is_text_file = (mimetype and mimetype.startswith('text/')) or \
-                          filename.endswith(self.TEXT_FILE_EXTENSIONS)
-            
-            if is_text_file:
-                vscode_item = Nautilus.MenuItem(
-                    name='AddNautilusMenuItems::open_file_in_vscode',
-                    label=f'{self.MENU_ICON}Open in VSCode',
-                    tip='Open this file in Visual Studio Code'
-                )
-                vscode_item.connect('activate', self.open_in_vscode, file)
-                items.append(vscode_item)
         
         # Add Open Coral Configs option
         config_item = Nautilus.MenuItem(
@@ -247,7 +220,6 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         Menu Items Added:
             - New Markdown: Creates a new timestamped markdown file in current folder
             - Search: Recursively search for text in the current folder
-            - Open in VSCode: Opens the current folder in Visual Studio Code
         """
         items = []
         
@@ -319,15 +291,6 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         new_markdown_item.connect('activate', self.new_markdown, current_folder)
         items.append(new_markdown_item)
         
-        # Open current folder in VSCode option
-        vscode_item = Nautilus.MenuItem(
-            name='AddNautilusMenuItems::open_current_in_vscode',
-            label=f'{self.MENU_ICON}Open in VSCode',
-            tip='Open current folder in Visual Studio Code'
-        )
-        vscode_item.connect('activate', self.open_in_vscode, current_folder)
-        items.append(vscode_item)
-        
         # Open Coral Configs option
         config_item = Nautilus.MenuItem(
             name='AddNautilusMenuItems::open_coral_configs_bg',
@@ -365,15 +328,6 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         while delegating the actual markdown creation to the MarkdownHandler.
         """
         self.markdown_handler.new_markdown(menu, current_folder)
-
-    def open_in_vscode(self, menu, file):
-        """
-        Delegate to the VSCode handler for opening files/folders in VSCode.
-        
-        This is a wrapper method that maintains the existing menu interface
-        while delegating the actual VSCode opening to the VSCodeHandler.
-        """
-        self.vscode_handler.open_in_vscode(menu, file)
 
     def run_script(self, menu, file):
         """

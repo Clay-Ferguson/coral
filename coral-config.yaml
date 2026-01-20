@@ -1,0 +1,48 @@
+# Coral Nautilus Extension Configuration
+# TIP: Run 'nautilus -q' after editing this file, to make it go into effect
+
+search:
+  included:
+    # File extensions to include in searches
+    - "*.md"
+    - "*.txt"
+    - "*.pdf"
+
+  # Patterns to exclude from searches (glob patterns)
+  # These directories/files will be skipped during recursive search
+  excluded:
+    - "*/node_modules/*"
+    - "*/.git/*"
+    - "*/.venv/*"
+    - "*/__pycache__/*"
+    - "*/venv/*"
+    - "*/.svn/*"
+    - "*/.hg/*"
+    - "*/build/*"
+    - "*/dist/*"
+    - "*/.next/*"
+    - "*/.nuxt/*"
+    
+scripts:
+  - name: Open in VSCode 
+    content: |
+        code $OPEN_FOLDER
+  - name: Open in VSCode (Secure)
+    content: |
+      firejail --noprofile \
+        --env=PATH="$HOME/.nvm/versions/node/v22.2.0/bin:$PATH" \
+        --whitelist=~/.vscode \
+        --whitelist=~/.config/Code \
+        --whitelist=~/.config/coral \
+        --whitelist=$OPEN_FOLDER \
+        --whitelist=~/.nvm \
+        --whitelist=~/.yarn \
+        --whitelist=~/.npm \
+        --whitelist=~/.cache \
+        --whitelist=~/.docker \
+        --whitelist=~/.config/gtk-3.0 \
+        --whitelist=~/.config/gtk-4.0 \
+        --whitelist=~/.config/dconf \
+        --whitelist=~/.icons \
+        --whitelist=~/.local/share/icons \
+        code $OPEN_FOLDER

@@ -17,7 +17,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cp "$SCRIPT_DIR/coral_action.py" "$ACTION_FILE"
 cp "$SCRIPT_DIR/search.py" "$ACTIONS_DIR/search.py"
 cp "$SCRIPT_DIR/new_markdown.py" "$ACTIONS_DIR/new_markdown.py"
-cp "$SCRIPT_DIR/open_in_vscode.py" "$ACTIONS_DIR/open_in_vscode.py"
 cp "$SCRIPT_DIR/run_script_for_folder.py" "$ACTIONS_DIR/run_script_for_folder.py"
 cp "$SCRIPT_DIR/run_script.py" "$ACTIONS_DIR/run_script.py"
 
