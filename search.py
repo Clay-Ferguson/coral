@@ -95,6 +95,55 @@ class SearchHandler:
             print(f"Error reading {pattern_type} patterns from config: {e}")
             return []
     
+    def _get_pdf_cache_function(self):
+        """
+        Generate the bash function for PDF text caching.
+
+        This function creates/uses cached PDF text content stored in ~/.cache/coral/
+        to avoid repeatedly running pdftotext on unchanged PDF files.
+
+        Cache key is a hash of (file path + modification timestamp), so the cache
+        is automatically invalidated when the PDF is modified.
+
+        Returns:
+            str: Bash function code for get_pdf_text()
+        """
+        return r'''
+# PDF caching function - caches pdftotext output in ~/.cache/coral/
+# Cache key is hash of (filepath + mtime), so cache invalidates on file change
+PDF_CACHE_DIR="$HOME/.cache/coral"
+
+get_pdf_text() {
+    local pdf_file="$1"
+
+    # Get the file's modification timestamp
+    local mtime=$(stat -c %Y "$pdf_file" 2>/dev/null)
+    if [ -z "$mtime" ]; then
+        # If we can't get mtime, fall back to direct pdftotext
+        pdftotext "$pdf_file" - 2>/dev/null
+        return
+    fi
+
+    # Create hash from filepath + mtime
+    local cache_key=$(echo -n "${pdf_file}${mtime}" | md5sum | cut -d' ' -f1)
+    local cache_file="${PDF_CACHE_DIR}/${cache_key}"
+
+    # Ensure cache directory exists
+    mkdir -p "$PDF_CACHE_DIR" 2>/dev/null
+
+    # Check if cache file exists
+    if [ -f "$cache_file" ]; then
+        # Cache hit - read from cache
+        cat "$cache_file"
+    else
+        # Cache miss - run pdftotext and save to cache
+        local pdf_text=$(pdftotext "$pdf_file" - 2>/dev/null)
+        echo "$pdf_text" > "$cache_file" 2>/dev/null
+        echo "$pdf_text"
+    fi
+}
+'''
+
     def _get_results_display_script(self, title, search_display, folder_path):
         """
         Generate the bash script portion for displaying search results in zenity.
@@ -396,6 +445,7 @@ if ! command -v pdftotext &> /dev/null; then
     echo "To install pdftotext, run: sudo apt install poppler-utils"
     echo ""
 fi
+''' + self._get_pdf_cache_function() + rf'''
 
 echo "Searching regular files..."
 
@@ -444,7 +494,7 @@ if [ "{search_pdfs}" = "True" ]; then
                 # Display progress indicator for PDFs
                 echo -ne "\rPDF files searched: $pdf_searched | Matches found: $pdf_matches"
                 
-                if pdftotext "$pdf_file" - 2>/dev/null | grep {grep_flags_quiet} "{search_term}"; then
+                if get_pdf_text "$pdf_file" | grep {grep_flags_quiet} "{search_term}"; then
                     ((pdf_matches++))
                     echo -ne "\rPDF files searched: $pdf_searched | Matches found: $pdf_matches"
                     
@@ -612,7 +662,7 @@ if ! command -v pdftotext &> /dev/null; then
     echo "To install pdftotext, run: sudo apt install poppler-utils"
     echo ""
 fi
-
+''' + self._get_pdf_cache_function() + rf'''
 echo "Searching regular files..."
 
 # Initialize counters
@@ -660,8 +710,8 @@ if [ "{search_pdfs}" = "True" ]; then
                 # Display progress indicator for PDFs
                 echo -ne "\rPDF files searched: $pdf_searched | Matches found: $pdf_matches"
                 
-                # Use pdftotext to extract text and grep with OR pattern
-                if pdftotext "$pdf_file" - 2>/dev/null | grep -E -q -i '{grep_pattern}'; then
+                # Use cached PDF text and grep with OR pattern
+                if get_pdf_text "$pdf_file" | grep -E -q -i '{grep_pattern}'; then
                     ((pdf_matches++))
                     echo -ne "\rPDF files searched: $pdf_searched | Matches found: $pdf_matches"
                     
@@ -785,7 +835,7 @@ if ! command -v pdftotext &> /dev/null; then
     echo "To install pdftotext, run: sudo apt install poppler-utils"
     echo ""
 fi
-
+''' + self._get_pdf_cache_function() + rf'''
 echo "Searching regular files..."
 
 # Initialize counters
@@ -833,8 +883,8 @@ if [ "{search_pdfs}" = "True" ]; then
                 # Display progress indicator for PDFs
                 echo -ne "\rPDF files searched: $pdf_searched | Matches found: $pdf_matches"
                 
-                # Extract PDF text and check if ALL terms are present
-                pdf_text=$(pdftotext "$pdf_file" - 2>/dev/null)
+                # Extract PDF text (using cache) and check if ALL terms are present
+                pdf_text=$(get_pdf_text "$pdf_file")
                 all_terms_found=true
                 
                 # Check each term individually
