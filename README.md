@@ -1,8 +1,12 @@
 # Coral (Extends Nautilus Context Menu)
 
+![Python](https://img.shields.io/badge/python-3.x-blue.svg)
+![Platform](https://img.shields.io/badge/platform-linux-lightgrey.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+
 A developer-focused extension for Nautilus file manager that adds convenient context menu actions to streamline your workflow. Coral enhances Nautilus with productivity tools specifically designed for software developers.
 
-Coral consists of four menu items added to the Nautilus right-click popup menu as shown in the image below: New Markdown, Search, Open in VSCode, and Run Script. The Coral Nautilus extension adds the ability to create a new markdown file in any folder using a single mouse click (a nice productivity aid), recursively search for text content across all files including PDFs, open VSCode projects with a single click, as well as the ability to run shell scripts with a single click. All of these tasks are very common for developers, and it's nice to have these embedded on a menu for a single click right inside Nautilus. 
+Coral adds menu items to the Nautilus right-click popup menu as shown in the image below: New Markdown, Search, Run Script, and Custom Scripts. The Coral Nautilus extension adds the ability to create a new markdown file in any folder using a single mouse click (a nice productivity aid), recursively search for text content across all files including PDFs, run shell scripts with a single click, and run custom YAML-defined scripts against folders. All of these tasks are very common for developers, and it's nice to have these embedded on a menu for a single click right inside Nautilus. 
 
 Coral seamlessly integrates with Nautilus to provide quick access to common developer tasks directly from the file manager's context menu. No more switching between applications or remembering complex terminal commands - everything you need is just a right-click away.
 
@@ -66,16 +70,6 @@ The Search menu contains a submenu with three powerful search options:
 sudo apt install poppler-utils
 ```
 
-## 📂 Open in VS Code (Menu Item)
-**Available:** On folders, text files, and empty space
-
-Launches Visual Studio Code with the selected item, making it effortless to jump into coding or editing tasks.
-
-- **Folder support:** Opens entire directories as VS Code workspaces
-- **Text file support:** Directly opens supported file types for editing
-- **Smart detection:** Recognizes common developer file formats (.txt, .md, .py, .js, .html, .css, .json, .xml, .yml, .yaml, .ini, .cfg, .conf, and more)
-- **Empty space option:** Opens the current directory when right-clicking on empty space
-
 ### ⚡ Run Script (Menu Item)
 **Available:** On shell script files (.sh)
 
@@ -97,7 +91,7 @@ Define your own custom scripts in the Coral configuration file, and they'll auto
 
 1. Open your Coral config file by right-clicking and selecting **Open Coral Configs**
 2. Define scripts under the `scripts` key in the YAML
-3. Each script gets its own menu item, appearing right after "Open in VSCode"
+3. Each script gets its own menu item on the context menu
 4. When you click a script menu item, it runs with `$OPEN_FOLDER` replaced by the selected folder path
 
 ### YAML Format
@@ -118,6 +112,11 @@ scripts:
 
 ```yaml
 scripts:
+  # Open folder in VS Code
+  - name: Open in VSCode
+    content: |
+      code $OPEN_FOLDER
+
   # Launch VS Code in a secure Firejail sandbox
   - name: vscode-sandbox
     content: |
@@ -127,11 +126,6 @@ scripts:
         --whitelist=$OPEN_FOLDER \
         code $OPEN_FOLDER
 
-  # Run a Node.js project
-  - name: npm-start
-    content: |
-      cd $OPEN_FOLDER && npm start
-
   # Open a terminal in the folder
   - name: terminal
     content: |
@@ -139,8 +133,8 @@ scripts:
 ```
 
 With this configuration, you'll see three new menu items when right-clicking on folders:
+- **● Open in VSCode** - Opens VS Code with the selected folder
 - **● vscode-sandbox** - Opens VS Code in a sandboxed environment
-- **● npm-start** - Runs `npm start` in the selected folder
 - **● terminal** - Opens a new terminal window in that folder
 
 ### Use Cases
@@ -157,6 +151,19 @@ With this configuration, you'll see three new menu items when right-clicking on 
 - The `$OPEN_FOLDER` path is automatically quoted to handle spaces and special characters
 - Use backslashes (`\`) at the end of lines for readable multiline commands
 - Scripts run in the background (non-blocking) so Nautilus remains responsive
+
+### TTY/Interactive Apps (Claude Code Example)
+
+Some CLI apps require a real TTY to initialize. In that case, launch them inside a terminal rather than running them directly. For example, Anthropic’s Claude Code app:
+
+```yaml
+scripts:
+  - name: Open with Claude
+    content: |
+      gnome-terminal --working-directory="$OPEN_FOLDER" -- bash -lc "claude; exec bash"
+```
+
+This ensures the app runs with a TTY and opens in the selected folder.
 
 ## Installation
 
