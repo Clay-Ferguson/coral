@@ -70,6 +70,29 @@ The Search menu contains a submenu with three powerful search options:
 sudo apt install poppler-utils
 ```
 
+### 📊 PDF Search Performance & Cache
+
+Coral caches PDF text content to dramatically improve search performance. When a PDF is first searched, `pdftotext` extracts the text and stores it in `$HOME/.cache/coral/pdf-cache/`. Subsequent searches use the cached text instead of re-extracting, making searches much faster.
+
+**How the cache works:**
+- Cache files are stored in `$HOME/.cache/coral/pdf-cache/`
+- Each PDF gets a unique cache file based on its path and modification time
+- Cache automatically invalidates when a PDF is modified
+- No manual cache management needed for most use cases
+
+**Clearing the cache:**
+
+If you work with many PDFs that change frequently, the cache directory may grow large over time. You can safely delete the cache at any time:
+
+```bash
+rm -rf ~/.cache/coral/pdf-cache/
+```
+
+The cache will be automatically rebuilt as you search PDFs. Consider clearing it periodically if:
+- You have limited disk space
+- PDFs on your system change frequently
+- You want to free up space from old, no-longer-used PDF cache files
+
 ### ⚡ Run Script (Menu Item)
 **Available:** On shell script files (.sh)
 

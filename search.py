@@ -109,9 +109,9 @@ class SearchHandler:
             str: Bash function code for get_pdf_text()
         """
         return r'''
-# PDF caching function - caches pdftotext output in ~/.cache/coral/
+# PDF caching function - caches pdftotext output in ~/.cache/coral/pdf-cache/
 # Cache key is hash of (filepath + mtime), so cache invalidates on file change
-PDF_CACHE_DIR="$HOME/.cache/coral"
+PDF_CACHE_DIR="$HOME/.cache/coral/pdf-cache"
 
 get_pdf_text() {
     local pdf_file="$1"
@@ -476,42 +476,34 @@ echo ""
 
 # Only search PDFs if search_pdfs is true
 if [ "{search_pdfs}" = "True" ]; then
-    # Ask user if they want to search PDF files
-    echo ""
-    read -p "Search PDF files? (y/n): " search_pdfs_choice
-    if [[ "$search_pdfs_choice" =~ ^[Yy]$ ]]; then
-        echo "Searching PDF files..."
+    echo "Searching PDF files..."
 
-        # Reset counters for PDF search
-        pdf_searched=0
-        pdf_matches=0
+    # Reset counters for PDF search
+    pdf_searched=0
+    pdf_matches=0
 
-        # Search PDF files if pdftotext is available (with exclusions)
-        if command -v pdftotext &> /dev/null; then
-            while IFS= read -r -d '' pdf_file; do
-                ((pdf_searched++))
-                
-                # Display progress indicator for PDFs
+    # Search PDF files if pdftotext is available (with exclusions)
+    if command -v pdftotext &> /dev/null; then
+        while IFS= read -r -d '' pdf_file; do
+            ((pdf_searched++))
+
+            # Display progress indicator for PDFs
+            echo -ne "\rPDF files searched: $pdf_searched | Matches found: $pdf_matches"
+
+            if get_pdf_text "$pdf_file" | grep {grep_flags_quiet} "{search_term}"; then
+                ((pdf_matches++))
                 echo -ne "\rPDF files searched: $pdf_searched | Matches found: $pdf_matches"
-                
-                if get_pdf_text "$pdf_file" | grep {grep_flags_quiet} "{search_term}"; then
-                    ((pdf_matches++))
-                    echo -ne "\rPDF files searched: $pdf_searched | Matches found: $pdf_matches"
-                    
-                    # Add to results array
-                    RESULTS+=("$pdf_file")
-                fi
-            done < <(find "{folder_path}" {find_exclusions}-type f -name "*.pdf" -print0 2>/dev/null)
-            # Final newline after PDF progress indicator
-            echo ""
-        else
-            echo "(Skipping PDF files - pdftotext not installed)"
-        fi
+
+                # Add to results array
+                RESULTS+=("$pdf_file")
+            fi
+        done < <(find "{folder_path}" {find_exclusions}-type f -name "*.pdf" -print0 2>/dev/null)
+        # Final newline after PDF progress indicator
         echo ""
     else
-        echo "(Skipping PDF search)"
-        echo ""
+        echo "(Skipping PDF files - pdftotext not installed)"
     fi
+    echo ""
 else
     echo "(Skipping PDF files - not in included file patterns)"
     echo ""
@@ -692,43 +684,35 @@ echo ""
 
 # Only search PDFs if search_pdfs is true
 if [ "{search_pdfs}" = "True" ]; then
-    # Ask user if they want to search PDF files
-    echo ""
-    read -p "Search PDF files? (y/n): " search_pdfs_choice
-    if [[ "$search_pdfs_choice" =~ ^[Yy]$ ]]; then
-        echo "Searching PDF files..."
+    echo "Searching PDF files..."
 
-        # Reset counters for PDF search
-        pdf_searched=0
-        pdf_matches=0
+    # Reset counters for PDF search
+    pdf_searched=0
+    pdf_matches=0
 
-        # Search PDF files if pdftotext is available
-        if command -v pdftotext &> /dev/null; then
-            while IFS= read -r -d '' pdf_file; do
-                ((pdf_searched++))
-                
-                # Display progress indicator for PDFs
+    # Search PDF files if pdftotext is available
+    if command -v pdftotext &> /dev/null; then
+        while IFS= read -r -d '' pdf_file; do
+            ((pdf_searched++))
+
+            # Display progress indicator for PDFs
+            echo -ne "\rPDF files searched: $pdf_searched | Matches found: $pdf_matches"
+
+            # Use cached PDF text and grep with OR pattern
+            if get_pdf_text "$pdf_file" | grep -E -q -i '{grep_pattern}'; then
+                ((pdf_matches++))
                 echo -ne "\rPDF files searched: $pdf_searched | Matches found: $pdf_matches"
-                
-                # Use cached PDF text and grep with OR pattern
-                if get_pdf_text "$pdf_file" | grep -E -q -i '{grep_pattern}'; then
-                    ((pdf_matches++))
-                    echo -ne "\rPDF files searched: $pdf_searched | Matches found: $pdf_matches"
-                    
-                    # Add to results array
-                    RESULTS+=("$pdf_file")
-                fi
-            done < <(find "{folder_path}" {find_exclusions}-type f -name "*.pdf" -print0 2>/dev/null)
-            # Final newline after PDF progress indicator
-            echo ""
-        else
-            echo "(Skipping PDF files - pdftotext not installed)"
-        fi
+
+                # Add to results array
+                RESULTS+=("$pdf_file")
+            fi
+        done < <(find "{folder_path}" {find_exclusions}-type f -name "*.pdf" -print0 2>/dev/null)
+        # Final newline after PDF progress indicator
         echo ""
     else
-        echo "(Skipping PDF search)"
-        echo ""
+        echo "(Skipping PDF files - pdftotext not installed)"
     fi
+    echo ""
 else
     echo "(Skipping PDF files - not in included file patterns)"
     echo ""
@@ -865,49 +849,41 @@ echo ""
 
 # Only search PDFs if search_pdfs is true
 if [ "{search_pdfs}" = "True" ]; then
-    # Ask user if they want to search PDF files
-    echo ""
-    read -p "Search PDF files? (y/n): " search_pdfs_choice
-    if [[ "$search_pdfs_choice" =~ ^[Yy]$ ]]; then
-        echo "Searching PDF files..."
+    echo "Searching PDF files..."
 
-        # Reset counters for PDF search
-        pdf_searched=0
-        pdf_matches=0
+    # Reset counters for PDF search
+    pdf_searched=0
+    pdf_matches=0
 
-        # Search PDF files if pdftotext is available
-        if command -v pdftotext &> /dev/null; then
-            while IFS= read -r -d '' pdf_file; do
-                ((pdf_searched++))
-                
-                # Display progress indicator for PDFs
-                echo -ne "\rPDF files searched: $pdf_searched | Matches found: $pdf_matches"
-                
-                # Extract PDF text (using cache) and check if ALL terms are present
-                pdf_text=$(get_pdf_text "$pdf_file")
-                all_terms_found=true
-                
-                # Check each term individually
+    # Search PDF files if pdftotext is available
+    if command -v pdftotext &> /dev/null; then
+        while IFS= read -r -d '' pdf_file; do
+            ((pdf_searched++))
+
+            # Display progress indicator for PDFs
+            echo -ne "\rPDF files searched: $pdf_searched | Matches found: $pdf_matches"
+
+            # Extract PDF text (using cache) and check if ALL terms are present
+            pdf_text=$(get_pdf_text "$pdf_file")
+            all_terms_found=true
+
+            # Check each term individually
 ''' + '\n'.join([f'                if ! echo "$pdf_text" | grep -q -i "{term}"; then\n                    all_terms_found=false\n                fi' for term in escaped_terms]) + rf'''
-                
-                if [ "$all_terms_found" = true ]; then
-                    ((pdf_matches++))
-                    echo -ne "\rPDF files searched: $pdf_searched | Matches found: $pdf_matches"
-                    
-                    # Add to results array
-                    RESULTS+=("$pdf_file")
-                fi
-            done < <(find "{folder_path}" {find_exclusions}-type f -name "*.pdf" -print0 2>/dev/null)
-            # Final newline after PDF progress indicator
-            echo ""
-        else
-            echo "(Skipping PDF files - pdftotext not installed)"
-        fi
+
+            if [ "$all_terms_found" = true ]; then
+                ((pdf_matches++))
+                echo -ne "\rPDF files searched: $pdf_searched | Matches found: $pdf_matches"
+
+                # Add to results array
+                RESULTS+=("$pdf_file")
+            fi
+        done < <(find "{folder_path}" {find_exclusions}-type f -name "*.pdf" -print0 2>/dev/null)
+        # Final newline after PDF progress indicator
         echo ""
     else
-        echo "(Skipping PDF search)"
-        echo ""
+        echo "(Skipping PDF files - pdftotext not installed)"
     fi
+    echo ""
 else
     echo "(Skipping PDF files - not in included file patterns)"
     echo ""
