@@ -108,8 +108,10 @@ class OpenFolderHandler:
             print(f"Script not found: {script_name}")
             return
         
-        # Replace $OPEN_FOLDER with the actual folder path
-        # Use quotes around the path to handle spaces and special characters
+        # Replace $OPEN_FOLDER with the actual folder path.
+        # If the placeholder is already quoted ("$OPEN_FOLDER"), avoid double-quotes.
+        # Always ensure the final substitution is safely quoted to handle spaces.
+        script_content = script_content.replace('"$OPEN_FOLDER"', f'"{folder_path}"')
         script_content = script_content.replace('$OPEN_FOLDER', f'"{folder_path}"')
         
         try:

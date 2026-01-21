@@ -24,17 +24,22 @@ search:
     - "*/.nuxt/*"
     
 scripts:
+  - name: Open with Claude
+    content: |
+      gnome-terminal --working-directory="$OPEN_FOLDER" -- bash -lc "/home/clay/.local/bin/claude; exec bash"
+
   - name: Open in VSCode 
     content: |
-        code $OPEN_FOLDER
+      code "$OPEN_FOLDER"
+    
   - name: Open in VSCode (Secure)
     content: |
       firejail --noprofile \
-        --env=PATH="$HOME/.nvm/versions/node/v22.2.0/bin:$PATH" \
+        --env=PATH="$HOME/.nvm/versions/node/v22.22.0/bin:$PATH" \
         --whitelist=~/.vscode \
         --whitelist=~/.config/Code \
         --whitelist=~/.config/coral \
-        --whitelist=$OPEN_FOLDER \
+        --whitelist="$OPEN_FOLDER" \
         --whitelist=~/.nvm \
         --whitelist=~/.yarn \
         --whitelist=~/.npm \
@@ -45,4 +50,4 @@ scripts:
         --whitelist=~/.config/dconf \
         --whitelist=~/.icons \
         --whitelist=~/.local/share/icons \
-        code $OPEN_FOLDER
+        code "$OPEN_FOLDER"
