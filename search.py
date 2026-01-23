@@ -436,8 +436,9 @@ echo "Search type: {search_type_label}"
 echo "In folder: {folder_path}"
 echo ""
 
-# Initialize results array
+# Initialize results array and seen set (to avoid duplicates)
 declare -a RESULTS=()
+declare -A SEEN_FILES=()
 
 # Check if pdftotext is available
 if ! command -v pdftotext &> /dev/null; then
@@ -464,9 +465,10 @@ while IFS= read -r -d '' file; do
     if grep {grep_flags} "{search_term}" "$file" >/dev/null 2>&1; then
         ((matches_found++))
         echo -ne "\rFiles searched: $files_searched | Matches found: $matches_found"
-        
-        # Add to results array
+
+        # Add to results array and mark as seen
         RESULTS+=("$file")
+        SEEN_FILES["$file"]=1
     fi
 done < <(find "{folder_path}" {find_exclusions}-type f {find_inclusions_non_pdf}! -name "*.pdf" -print0 2>/dev/null)
 
@@ -494,8 +496,9 @@ if [ "{search_pdfs}" = "True" ]; then
                 ((pdf_matches++))
                 echo -ne "\rPDF files searched: $pdf_searched | Matches found: $pdf_matches"
 
-                # Add to results array
+                # Add to results array and mark as seen
                 RESULTS+=("$pdf_file")
+                SEEN_FILES["$pdf_file"]=1
             fi
         done < <(find "{folder_path}" {find_exclusions}-type f -name "*.pdf" -print0 2>/dev/null)
         # Final newline after PDF progress indicator
@@ -517,13 +520,20 @@ names_matched=0
 # Search for files and folders with names matching the search term (literal match)
 while IFS= read -r -d '' matched_item; do
     ((names_searched++))
+
+    # Skip if already in results (from content search)
+    if [[ -n "${{SEEN_FILES[$matched_item]}}" ]]; then
+        continue
+    fi
+
     ((names_matched++))
-    
+
     # Display progress indicator
     echo -ne "\rNames searched: $names_searched | Matches found: $names_matched"
-    
-    # Add to results array
+
+    # Add to results array and mark as seen
     RESULTS+=("$matched_item")
+    SEEN_FILES["$matched_item"]=1
 done < <(find "{folder_path}" {find_exclusions}-iname "*{search_term}*" -print0 2>/dev/null)
 
 # Final newline after progress indicator
