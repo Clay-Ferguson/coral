@@ -101,7 +101,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         if file.is_directory():
             search_parent = Nautilus.MenuItem(
                 name='AddNautilusMenuItems::search_parent',
-                label=f'{self.MENU_ICON}Search',
+                label='🔍  Search',
                 tip='Search options'
             )
             
@@ -160,7 +160,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         # Always add New Markdown option (works for any selection)
         new_markdown_item = Nautilus.MenuItem(
             name='AddNautilusMenuItems::new_markdown_from_selection',
-            label=f'{self.MENU_ICON}New Markdown',
+            label='✏️  New Markdown',
             tip='Create a new timestamped markdown file and open in VSCode'
         )
         new_markdown_item.connect('activate', self.new_markdown_from_selection, file)
@@ -168,11 +168,13 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
 
         copy_full_path_item = Nautilus.MenuItem(
             name='AddNautilusMenuItems::copy_full_path',
-            label=f'{self.MENU_ICON}Copy Full Path',
+            label='📋  Copy Full Path',
             tip='Copy the full path of the selected item to the clipboard'
         )
         copy_full_path_item.connect('activate', self.copy_full_path, file)
         items.append(copy_full_path_item)
+        
+        # insert divider line
         
         # Check if it's a shell script
         if not file.is_directory() and file.get_name().endswith('.sh'):
@@ -193,16 +195,18 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
                 if script_name:
                     script_item = Nautilus.MenuItem(
                         name=f'AddNautilusMenuItems::run_script_{script_name}',
-                        label=f'{self.MENU_ICON}{script_name}',
+                        label=f'{script_name}',
                         tip=f'Run {script_name} script on this folder'
                     )
                     script_item.connect('activate', self.run_script_for_folder, file, script_name)
                     items.append(script_item)
         
+        # insert divider line
+        
         # Add Open Coral Configs option
         config_item = Nautilus.MenuItem(
             name='AddNautilusMenuItems::open_coral_configs',
-            label=f'{self.MENU_ICON}Open Coral Configs',
+            label=f'⚙️  Open Coral Configs',
             tip='Open Coral configuration file in VSCode'
         )
         config_item.connect('activate', self.open_coral_configs)
@@ -234,7 +238,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         # Search submenu for current folder (first item)
         search_parent = Nautilus.MenuItem(
             name='AddNautilusMenuItems::search_current_parent',
-            label=f'{self.MENU_ICON}Search',
+            label='🔍  Search',
             tip='Search options'
         )
         
@@ -293,7 +297,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         # New Markdown file option
         new_markdown_item = Nautilus.MenuItem(
             name='AddNautilusMenuItems::new_markdown',
-            label=f'{self.MENU_ICON}New Markdown',
+            label='✏️  New Markdown',
             tip='Create a new timestamped markdown file and open in VSCode'
         )
         new_markdown_item.connect('activate', self.new_markdown, current_folder)
@@ -302,7 +306,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         # Open Coral Configs option
         config_item = Nautilus.MenuItem(
             name='AddNautilusMenuItems::open_coral_configs_bg',
-            label=f'{self.MENU_ICON}Open Coral Configs',
+            label=f'⚙️  Open Coral Configs',
             tip='Open Coral configuration file in VSCode'
         )
         config_item.connect('activate', self.open_coral_configs)
