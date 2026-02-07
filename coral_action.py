@@ -173,9 +173,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         )
         copy_full_path_item.connect('activate', self.copy_full_path, file)
         items.append(copy_full_path_item)
-        
-        # insert divider line
-        
+
         # Check if it's a shell script
         if not file.is_directory() and file.get_name().endswith('.sh'):
             run_script_item = Nautilus.MenuItem(
@@ -200,9 +198,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
                     )
                     script_item.connect('activate', self.run_script_for_folder, file, script_name)
                     items.append(script_item)
-        
-        # insert divider line
-        
+
         # Add Open Coral Configs option
         config_item = Nautilus.MenuItem(
             name='AddNautilusMenuItems::open_coral_configs',
