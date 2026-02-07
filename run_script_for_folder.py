@@ -73,29 +73,13 @@ class OpenFolderHandler:
             return []
     
     def run_script_for_folder(self, menu, folder, script_name):
-        """
-        Run a named script from the config with the selected folder.
-        
-        This method executes a script defined in the YAML config file, replacing
-        the $OPEN_FOLDER variable with the path of the selected folder.
-        
-        Args:
-            menu (Nautilus.MenuItem): The menu item that triggered this action (unused).
-            folder (Nautilus.FileInfo): The folder to pass to the script.
-            script_name (str): The name of the script to run from the config.
-        
-        Behavior:
-            - Looks up the script by name in the config file
-            - Replaces $OPEN_FOLDER with the actual folder path
-            - Executes the script using bash in a subprocess
-            - Uses subprocess.Popen for non-blocking execution
-        """
+        """Run a named script from the config with the selected folder."""
         if not folder.get_uri().startswith('file://'):
             print(f"Invalid URI: {folder.get_uri()}")
             return
-        
+
         folder_path = urllib.parse.unquote(folder.get_uri()[7:])
-        
+
         # Find the script by name
         scripts = self.get_scripts()
         script_content = None
@@ -103,19 +87,53 @@ class OpenFolderHandler:
             if script.get('name') == script_name:
                 script_content = script.get('content', '')
                 break
-        
+
         if not script_content:
             print(f"Script not found: {script_name}")
             return
-        
-        # Replace $OPEN_FOLDER with the actual folder path.
-        # If the placeholder is already quoted ("$OPEN_FOLDER"), avoid double-quotes.
-        # Always ensure the final substitution is safely quoted to handle spaces.
+
+        # Replace $OPEN_FOLDER with the actual folder path
         script_content = script_content.replace('"$OPEN_FOLDER"', f'"{folder_path}"')
         script_content = script_content.replace('$OPEN_FOLDER', f'"{folder_path}"')
-        
+
         try:
-            # Execute the script using bash
-            subprocess.Popen(['bash', '-c', script_content])
+            # Build a wrapper script that sources initialization files directly.
+            # This is more reliable than capturing/parsing env output because:
+            # 1. It avoids issues with multi-line env values breaking parsing
+            # 2. The bash process itself will have nvm loaded, not just passed env vars
+            # 3. We preserve the current session's GUI environment (DISPLAY, DBUS, XDG_*)
+            wrapper_script = f'''#!/bin/bash
+# Ensure HOME is set (may be missing in D-Bus activated processes)
+export HOME="${{HOME:-$(getent passwd $(id -u) | cut -d: -f6)}}"
+
+# Source shell initialization files to get full user environment
+# Order matters: profile first, then bashrc (like a login interactive shell)
+[ -r /etc/profile ] && . /etc/profile
+[ -r "$HOME/.bash_profile" ] && . "$HOME/.bash_profile"
+[ -r "$HOME/.profile" ] && . "$HOME/.profile"
+[ -r "$HOME/.bashrc" ] && . "$HOME/.bashrc"
+
+# Explicitly initialize nvm if available (in case bashrc checks for interactivity)
+export NVM_DIR="${{NVM_DIR:-$HOME/.nvm}}"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+
+# Run the actual user script
+{script_content}
+'''
+
+            # Start with current environment to preserve GUI session variables
+            # (DISPLAY, DBUS_SESSION_BUS_ADDRESS, XDG_*, etc.)
+            env = os.environ.copy()
+
+            # Ensure HOME is set in the initial environment
+            if 'HOME' not in env:
+                import pwd
+                env['HOME'] = pwd.getpwuid(os.getuid()).pw_dir
+
+            subprocess.Popen(
+                ['bash', '-c', wrapper_script],
+                env=env,
+                start_new_session=True  # Properly detach from parent
+            )
         except Exception as e:
             print(f"Error executing script '{script_name}': {e}")

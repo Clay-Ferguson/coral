@@ -24,13 +24,17 @@ search:
     - "*/.nuxt/*"
     
 scripts:
-  - name: Open with Claude
+  - name: Open in MkBrowser
+    content: |
+      mk-browser $OPEN_FOLDER
+
+  - name: Open in Claude
     content: |
       gnome-terminal --working-directory="$OPEN_FOLDER" -- bash -lc "/home/clay/.local/bin/claude; exec bash"
 
   - name: Open in VSCode 
     content: |
-      code "$OPEN_FOLDER"
+      code $OPEN_FOLDER
     
   - name: Open in VSCode (Secure)
     content: |
