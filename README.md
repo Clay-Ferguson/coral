@@ -6,7 +6,7 @@
 
 A developer-focused extension for Nautilus file manager that adds convenient context menu actions to streamline your workflow. Coral enhances Nautilus with productivity tools specifically designed for software developers.
 
-Coral adds menu items to the Nautilus right-click popup menu as shown in the image below: New Markdown, Search, Run Script, and Custom Scripts. The Coral Nautilus extension adds the ability to create a new markdown file in any folder using a single mouse click (a nice productivity aid), recursively search for text content across all files including PDFs, run shell scripts with a single click, and run custom YAML-defined scripts against folders. All of these tasks are very common for developers, and it's nice to have these embedded on a menu for a single click right inside Nautilus. 
+Coral adds menu items to the Nautilus right-click popup menu as shown in the image below: New Markdown, Search, Copy Full Path, Run Script, and Custom Scripts. The Coral Nautilus extension adds the ability to create a new markdown file in any folder using a single mouse click (a nice productivity aid), recursively search for text content across all files including PDFs, copy a file or folder's full path to the clipboard, run shell scripts with a single click, and run custom YAML-defined scripts against folders. All of these tasks are very common for developers, and it's nice to have these embedded on a menu for a single click right inside Nautilus. 
 
 Coral seamlessly integrates with Nautilus to provide quick access to common developer tasks directly from the file manager's context menu. No more switching between applications or remembering complex terminal commands - everything you need is just a right-click away.
 
@@ -93,8 +93,20 @@ The cache will be automatically rebuilt as you search PDFs. Consider clearing it
 - PDFs on your system change frequently
 - You want to free up space from old, no-longer-used PDF cache files
 
+## 📋 Copy Full Path (Menu Item)
+**Available:** On files and folders
+
+Copies the full filesystem path of the selected file or folder to the clipboard with a single click. No more manually navigating to the address bar or typing paths in a terminal.
+
+- **Instant clipboard access:** Path is copied immediately when you click the menu item
+- **Works on any selection:** Files, folders, and any other filesystem items
+- **Full path:** Copies the complete absolute path (e.g., `/home/user/Documents/myfile.txt`)
+- **Requires `xclip`:** Install it with:
+  ```bash
+  sudo apt install xclip
+  ```
+
 ### ⚡ Run Script (Menu Item)
-**Available:** On shell script files (.sh)
 
 Executes shell scripts in a new terminal window, complete with proper directory context and user-friendly output.
 
@@ -208,5 +220,6 @@ This ensures the app runs with a TTY and opens in the selected folder.
 - Visual Studio Code
 - Python 3 with Nautilus bindings (automatically installed by setup script)
 - zenity (for graphical prompts)
+- xclip (for clipboard support - install with `sudo apt install xclip`)
 - poppler-utils (optional, for PDF search support - install with `sudo apt install poppler-utils`)
 

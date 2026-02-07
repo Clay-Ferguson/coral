@@ -3,7 +3,7 @@
 import os
 import urllib.parse
 import subprocess
-import mimetypes
+import shutil
 from datetime import datetime
 from gi.repository import Nautilus, GObject, GLib
 
@@ -165,6 +165,14 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         )
         new_markdown_item.connect('activate', self.new_markdown_from_selection, file)
         items.append(new_markdown_item)
+
+        copy_full_path_item = Nautilus.MenuItem(
+            name='AddNautilusMenuItems::copy_full_path',
+            label=f'{self.MENU_ICON}Copy Full Path',
+            tip='Copy the full path of the selected item to the clipboard'
+        )
+        copy_full_path_item.connect('activate', self.copy_full_path, file)
+        items.append(copy_full_path_item)
         
         # Check if it's a shell script
         if not file.is_directory() and file.get_name().endswith('.sh'):
@@ -373,5 +381,35 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         """
         config_path = os.path.expanduser('~/.config/coral/coral-config.yaml')
         subprocess.Popen([self.VSCODE_PATH, config_path])
+
+    def copy_full_path(self, menu, selected_item):
+        """
+        Copy the selected file or folder path to the clipboard.
+        """
+        path = self._get_filesystem_path(selected_item)
+        if not path:
+            print('Copy Full Path: unable to resolve file path.')
+            return
+
+        if not shutil.which('xclip'):
+            GLib.spawn_async(
+                argv=['zenity', '--error', '--text=xclip is not installed.\n\nInstall it with:\n  sudo apt install xclip', '--width=400'],
+                flags=GLib.SpawnFlags.SEARCH_PATH
+            )
+            return
+
+        # Write path to a temp file so we can pipe it to xclip via bash
+        # without blocking the Nautilus UI thread
+        escaped_path = path.replace("'", "'\\''")
+        GLib.spawn_async(
+            argv=['bash', '-c', f"echo -n '{escaped_path}' | xclip -selection clipboard"],
+            flags=GLib.SpawnFlags.SEARCH_PATH
+        )
+
+    def _get_filesystem_path(self, file_info):
+        uri = file_info.get_uri()
+        if not uri or not uri.startswith('file://'):
+            return None
+        return urllib.parse.unquote(uri[7:])
 
     

@@ -66,3 +66,5 @@ else
     echo "Config file already exists at: $CONFIG_FILE"
 fi
 
+nautilus -q
+echo "Setup complete! Right-click on folders and text files to see the new options."
