@@ -24,19 +24,19 @@ search:
     - "*/.nuxt/*"
     
 scripts:
-  - name: Open in MkBrowser
+  - name: 🖥️  Open with MkBrowser
     content: |
       mk-browser $OPEN_FOLDER
 
-  - name: Open in Claude
+  - name: ▶️  Open with Claude
     content: |
       gnome-terminal --working-directory="$OPEN_FOLDER" -- bash -lc "/home/clay/.local/bin/claude; exec bash"
 
-  - name: Open in VSCode 
+  - name: 🔧  Open in VSCode 
     content: |
       code $OPEN_FOLDER
     
-  - name: Open in VSCode (Secure)
+  - name: 🛠️  Open in VSCode (Secure)
     content: |
       firejail --noprofile \
         --env=PATH="$HOME/.nvm/versions/node/v22.22.0/bin:$PATH" \
