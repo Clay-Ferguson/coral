@@ -16,6 +16,7 @@ mkdir -p "$ACTIONS_DIR"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cp "$SCRIPT_DIR/coral_action.py" "$ACTION_FILE"
 cp "$SCRIPT_DIR/search.py" "$ACTIONS_DIR/search.py"
+cp "$SCRIPT_DIR/search_ripgrep.py" "$ACTIONS_DIR/search_ripgrep.py"
 cp "$SCRIPT_DIR/new_markdown.py" "$ACTIONS_DIR/new_markdown.py"
 cp "$SCRIPT_DIR/run_script_for_folder.py" "$ACTIONS_DIR/run_script_for_folder.py"
 cp "$SCRIPT_DIR/run_script.py" "$ACTIONS_DIR/run_script.py"
@@ -25,7 +26,7 @@ chmod +x "$ACTION_FILE"
 
 # Install python3-nautilus if needed
 echo "Installing required dependencies..."
-sudo apt update && sudo apt install -y python3-nautilus python3-yaml
+sudo apt update && sudo apt install -y python3-nautilus python3-yaml ripgrep
 
 # Create config directory and default config file if it doesn't exist
 CONFIG_DIR="$HOME/.config/coral"

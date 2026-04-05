@@ -8,7 +8,7 @@ from datetime import datetime
 from gi.repository import Nautilus, GObject, GLib
 
 # Import our handlers
-from search import SearchHandler
+from search_ripgrep import SearchHandler
 from new_markdown import MarkdownHandler
 from run_script import ScriptRunner
 from run_script_for_folder import OpenFolderHandler

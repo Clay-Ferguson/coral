@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 """
+
+WARNING: This file is deprecated and was replaced by 'search_ripgrep.py' because ripgrep is
+much faster and superior to 'grep'.
+
 Search functionality for the Coral Nautilus extension.
 
 This module provides recursive text search capabilities for folders,
