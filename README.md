@@ -40,20 +40,20 @@ The Search menu contains a submenu with three powerful search options:
    - Example: Searching for `file*.txt` finds that exact string, not a wildcard pattern
 
 2. **Basic Regex** - Standard regular expression patterns
-   - Uses grep's default (BRE) pattern matching
+   - Uses ripgrep's regex engine for pattern matching
    - Supports `.` (any char), `*` (zero or more), `^` (start), `$` (end), `[...]` (character classes)
    - Great for flexible pattern matching with common wildcards
    - See [BASIC-REGEX-TIPS.md](docs/BASIC-REGEX-TIPS.md) for comprehensive examples and patterns
 
 3. **Extended Regex** - Advanced regular expression patterns
-   - Uses grep's extended mode (`-E`) for powerful searching
+   - Uses ripgrep's regex engine with full extended pattern support
    - Supports `|` (OR), `+` (one or more), `?` (optional), `{n,m}` (repetition), `()` (grouping)
    - Perfect for complex searches like `error|warning|critical` or `https?://`
    - See [EXTENDED-REGEX-TIPS.md](docs/EXTENDED-REGEX-TIPS.md) for comprehensive examples and patterns
 
 **Search Features:**
 
-- **Comprehensive search:** Searches file content (using `grep` for regular files and `pdftotext` for PDFs) **and** searches filenames and folder names (using `find`)
+- **Comprehensive search:** Searches file content (using `rg` (ripgrep) for regular files and `pdftotext` for PDFs) **and** searches filenames and folder names (using `find`)
 - **Filename matching:** Always uses literal/case-insensitive matching for filenames and folder names, regardless of selected search mode
 - **Interactive prompting:** Enter your search term via a friendly `zenity` dialog
 - **Live feedback:** Terminal window shows search progress in real-time
@@ -92,6 +92,20 @@ The cache will be automatically rebuilt as you search PDFs. Consider clearing it
 - You have limited disk space
 - PDFs on your system change frequently
 - You want to free up space from old, no-longer-used PDF cache files
+
+## Fallback: Plain `grep` Implementation
+
+The file `search_grep.py` contains an alternative version of the search functionality that uses plain `grep` instead of ripgrep. It is a drop-in replacement for `search_ripgrep.py` — if you ever need to revert to the plain `grep` implementation (for example, on a system where ripgrep is unavailable), simply change the import in `coral_action.py`:
+
+```python
+# Change this:
+from search_ripgrep import SearchHandler
+
+# To this:
+from search_grep import SearchHandler
+```
+
+`search_grep.py` is kept in the repository as a fallback but is not the active implementation. The ripgrep-based implementation (`search_ripgrep.py`) is significantly faster, especially on large directory trees.
 
 ## 📋 Copy Full Path (Menu Item)
 **Available:** On files and folders
@@ -221,5 +235,6 @@ This ensures the app runs with a TTY and opens in the selected folder.
 - Python 3 with Nautilus bindings (automatically installed by setup script)
 - zenity (for graphical prompts)
 - xclip (for clipboard support - install with `sudo apt install xclip`)
+- ripgrep (for file content searching - install with `sudo apt install ripgrep`)
 - poppler-utils (optional, for PDF search support - install with `sudo apt install poppler-utils`)
 
