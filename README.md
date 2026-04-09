@@ -65,9 +65,21 @@ The Search menu contains a submenu with three powerful search options:
 - **Configurable exclusions:** Exclude directories like `node_modules`, `.git`, build folders, etc. from searches
   - See [CONFIG.md](docs/CONFIG.md) for details on customizing search exclusions
 
+4. **Search Images** - Search image EXIF text metadata
+   - Searches image files (PNG, JPG, JPEG, GIF, WebP, TIFF, BMP, HEIC) for matching EXIF text metadata
+   - Scans fields like Description, ImageDescription, Caption, Comment, UserComment, Subject, Title, and Keywords
+   - Uses `exiftool` for metadata extraction and `rg` (ripgrep) for matching
+   - Great for finding photos by description, caption, or keyword tags
+   - Example: Searching for `sunset` finds images whose EXIF metadata contains that word
+
 **Note:** To enable PDF searching, install poppler-utils:
 ```bash
 sudo apt install poppler-utils
+```
+
+**Note:** To enable image EXIF searching, install exiftool:
+```bash
+sudo apt install libimage-exiftool-perl
 ```
 
 ### 📊 PDF Search Performance & Cache
@@ -92,6 +104,24 @@ The cache will be automatically rebuilt as you search PDFs. Consider clearing it
 - You have limited disk space
 - PDFs on your system change frequently
 - You want to free up space from old, no-longer-used PDF cache files
+
+### 🖼️ Image Search Performance & Cache
+
+Similar to PDF caching, Coral caches image EXIF text metadata to speed up repeated searches. When an image is first searched, `exiftool` extracts the text metadata and stores it in `$HOME/.cache/coral/image-cache/`. Subsequent searches use the cached output instead of re-running `exiftool`.
+
+**How the cache works:**
+- Cache files are stored in `$HOME/.cache/coral/image-cache/`
+- Each image gets a unique cache file based on its path and modification time
+- Cache automatically invalidates when an image is modified
+- No manual cache management needed for most use cases
+
+**Clearing the cache:**
+
+```bash
+rm -rf ~/.cache/coral/image-cache/
+```
+
+The cache will be automatically rebuilt as you search images.
 
 ## Fallback: Plain `grep` Implementation
 
@@ -237,4 +267,5 @@ This ensures the app runs with a TTY and opens in the selected folder.
 - xclip (for clipboard support - install with `sudo apt install xclip`)
 - ripgrep (for file content searching - install with `sudo apt install ripgrep`)
 - poppler-utils (optional, for PDF search support - install with `sudo apt install poppler-utils`)
+- exiftool (optional, for image EXIF metadata search - install with `sudo apt install libimage-exiftool-perl`)
 

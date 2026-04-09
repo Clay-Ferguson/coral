@@ -153,6 +153,15 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
             file_and_item.connect('activate', self.search_folder, file, 'file-and')
             search_submenu.append_item(file_and_item)
             
+            # Search Images option
+            search_images_item = Nautilus.MenuItem(
+                name='AddNautilusMenuItems::search_images',
+                label=f'{self.MENU_ICON}Search Images',
+                tip='Search image EXIF text metadata (descriptions, comments, keywords, etc.)'
+            )
+            search_images_item.connect('activate', self.search_images, file)
+            search_submenu.append_item(search_images_item)
+            
             # Attach submenu to parent
             search_parent.set_submenu(search_submenu)
             items.append(search_parent)
@@ -286,6 +295,15 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         file_and_item.connect('activate', self.search_folder, current_folder, 'file-and')
         search_submenu.append_item(file_and_item)
         
+        # Search Images option
+        search_images_item = Nautilus.MenuItem(
+            name='AddNautilusMenuItems::search_current_images',
+            label=f'{self.MENU_ICON}Search Images',
+            tip='Search image EXIF text metadata (descriptions, comments, keywords, etc.)'
+        )
+        search_images_item.connect('activate', self.search_images, current_folder)
+        search_submenu.append_item(search_images_item)
+        
         # Attach submenu to parent
         search_parent.set_submenu(search_submenu)
         items.append(search_parent)
@@ -318,6 +336,12 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         while delegating the actual search functionality to the SearchHandler.
         """
         self.search_handler.search_folder(menu, folder, search_type)
+
+    def search_images(self, menu, folder):
+        """
+        Delegate to the search handler for image EXIF text search operations.
+        """
+        self.search_handler.search_images(menu, folder)
 
     def new_markdown_from_selection(self, menu, selected_item):
         """

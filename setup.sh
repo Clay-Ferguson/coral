@@ -25,7 +25,7 @@ chmod +x "$ACTION_FILE"
 
 # Install python3-nautilus if needed
 echo "Installing required dependencies..."
-sudo apt update && sudo apt install -y python3-nautilus python3-yaml ripgrep
+sudo apt update && sudo apt install -y python3-nautilus python3-yaml ripgrep libimage-exiftool-perl
 
 # Install bubblewrap if not already installed
 # See example YAML for why we might want to install (and do install) bubblewrap here,

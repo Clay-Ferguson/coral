@@ -199,6 +199,52 @@ get_pdf_text() {
 }
 '''
 
+    def _get_image_cache_function(self):
+        """
+        Generate the bash function for image EXIF text caching.
+
+        Mirrors the PDF caching pattern: caches exiftool output in
+        ~/.cache/coral/image-cache/ keyed by hash of (filepath + mtime).
+
+        Returns:
+            str: Bash function code for get_image_text()
+        """
+        return r'''
+# Image EXIF text caching function - caches exiftool output in ~/.cache/coral/image-cache/
+# Cache key is hash of (filepath + mtime), so cache invalidates on file change
+IMAGE_CACHE_DIR="$HOME/.cache/coral/image-cache"
+
+get_image_text() {
+    local image_file="$1"
+
+    # Get the file's modification timestamp
+    local mtime=$(stat -c %Y "$image_file" 2>/dev/null)
+    if [ -z "$mtime" ]; then
+        # If we can't get mtime, fall back to direct exiftool
+        exiftool -s3 -Description -ImageDescription -Caption-Abstract -Comment -UserComment -Subject -Title -Keywords "$image_file" 2>/dev/null
+        return
+    fi
+
+    # Create hash from filepath + mtime
+    local cache_key=$(echo -n "${image_file}${mtime}" | md5sum | cut -d' ' -f1)
+    local cache_file="${IMAGE_CACHE_DIR}/${cache_key}"
+
+    # Ensure cache directory exists
+    mkdir -p "$IMAGE_CACHE_DIR" 2>/dev/null
+
+    # Check if cache file exists
+    if [ -f "$cache_file" ]; then
+        # Cache hit - read from cache
+        cat "$cache_file"
+    else
+        # Cache miss - run exiftool and save to cache
+        local image_text=$(exiftool -s3 -Description -ImageDescription -Caption-Abstract -Comment -UserComment -Subject -Title -Keywords "$image_file" 2>/dev/null)
+        echo "$image_text" > "$cache_file" 2>/dev/null
+        echo "$image_text"
+    fi
+}
+'''
+
     def _get_results_display_script(self, title, search_display, folder_path):
         """
         Generate the bash script portion for displaying search results in zenity.
@@ -917,3 +963,151 @@ fi
 ''' + self._get_results_display_script(f'File AND Search Results: {terms_display}', terms_display, folder_path)
         
         self._execute_search_script(script_content, 'File AND')
+
+    def search_images(self, menu, folder):
+        """
+        Search image EXIF text metadata within the selected folder.
+        
+        Prompts the user for a search term via zenity, then searches image files
+        for matching EXIF text metadata (descriptions, comments, keywords, etc.)
+        using exiftool in batch mode with caching.
+        
+        Args:
+            menu (Nautilus.MenuItem): The menu item that triggered this action (unused).
+            folder (Nautilus.FileInfo): The folder to search within.
+        """
+        if not folder.get_uri().startswith('file://'):
+            return
+            
+        folder_path = urllib.parse.unquote(folder.get_uri()[7:])
+        
+        # If it's a file selection, use the parent directory
+        if not folder.is_directory():
+            folder_path = os.path.dirname(folder_path)
+        
+        # Prompt for search term using zenity
+        argv = [
+            'zenity',
+            '--entry',
+            '--title=Search Images',
+            '--text=Enter search term (searches image EXIF text metadata):',
+            '--modal',
+            '--width=600',
+        ]
+        
+        try:
+            pid, _, stdout_fd, _ = GLib.spawn_async(
+                argv,
+                flags=GLib.SpawnFlags.SEARCH_PATH | GLib.SpawnFlags.DO_NOT_REAP_CHILD,
+                standard_output=True,
+                standard_error=False,
+            )
+        except GLib.GError as exc:
+            print(f'Failed to launch zenity: {exc}')
+            return
+        
+        GLib.child_watch_add(
+            GLib.PRIORITY_DEFAULT,
+            pid,
+            self._on_image_search_term_entered,
+            (stdout_fd, folder_path),
+        )
+
+    def _on_image_search_term_entered(self, pid, status, data):
+        """Process image search term once zenity dialog closes."""
+        stdout_fd, folder_path = data
+        
+        search_term = ''
+        try:
+            with os.fdopen(stdout_fd, 'r', encoding='utf-8', errors='ignore') as stdout:
+                search_term = stdout.read().strip()
+        except Exception as exc:
+            print(f'Error reading zenity output: {exc}')
+        
+        GLib.spawn_close_pid(pid)
+        
+        if not (os.WIFEXITED(status) and os.WEXITSTATUS(status) == 0) or not search_term:
+            return
+        
+        self._search_images(folder_path, search_term)
+
+    def _search_images(self, folder_path, search_term):
+        """Execute image EXIF text metadata search in a terminal.
+        
+        Mirrors the PDF search pattern: find images, loop per-file, pipe
+        exiftool output through ripgrep. Uses caching for repeated searches.
+        
+        Args:
+            folder_path (str): The folder path to search in.
+            search_term (str): The literal search term to look for.
+        """
+        # Get excluded patterns from config
+        excluded_patterns = self._get_search_patterns('excluded')
+        
+        # Build find command exclusions
+        find_exclusions = ''
+        if excluded_patterns:
+            exclusion_parts = []
+            for pattern in excluded_patterns:
+                exclusion_parts.append(f'-path "{pattern}" -prune -o')
+            find_exclusions = ' '.join(exclusion_parts) + ' '
+        
+        # Build find -iname conditions for image extensions
+        image_exts = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'tiff', 'bmp', 'heic']
+        iname_parts = ' -o '.join([f'-iname "*.{ext}"' for ext in image_exts])
+        find_images = f'\\( {iname_parts} \\)'
+        
+        script_content = rf'''#!/bin/bash
+echo "Search Images (EXIF text metadata)"
+echo "Searching for: {search_term}"
+echo "In folder: {folder_path}"
+echo ""
+
+# Check if exiftool is available
+if ! command -v exiftool &> /dev/null; then
+    echo "ERROR: exiftool not found. Please install it:"
+    echo "  sudo apt install libimage-exiftool-perl"
+    echo ""
+    echo "Press Enter to exit..."
+    read
+    exit 1
+fi
+
+# Check if ripgrep is available
+if ! command -v rg &> /dev/null; then
+    echo "ERROR: ripgrep (rg) not found. Please install it:"
+    echo "  sudo apt install ripgrep"
+    echo ""
+    echo "Press Enter to exit..."
+    read
+    exit 1
+fi
+''' + self._get_image_cache_function() + rf'''
+
+declare -a RESULTS=()
+declare -A SEEN_FILES=()
+
+echo "Searching image files..."
+
+images_searched=0
+images_matched=0
+
+while IFS= read -r -d '' image_file; do
+    ((images_searched++))
+
+    echo -ne "\rImage files searched: $images_searched | Matches found: $images_matched"
+
+    if get_image_text "$image_file" | rg -F -q -i -- "{search_term}"; then
+        ((images_matched++))
+        echo -ne "\rImage files searched: $images_searched | Matches found: $images_matched"
+
+        RESULTS+=("$image_file")
+        SEEN_FILES["$image_file"]=1
+    fi
+done < <(find "{folder_path}" {find_exclusions}-type f {find_images} -print0 2>/dev/null)
+
+echo ""
+echo ""
+''' + self._get_results_display_script(f'Image Search Results for: {search_term}', search_term, folder_path)
+        
+        self._execute_search_script(script_content, 'Search Images')
