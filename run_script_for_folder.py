@@ -102,9 +102,19 @@ class OpenFolderHandler:
             # 1. It avoids issues with multi-line env values breaking parsing
             # 2. The bash process itself will have nvm loaded, not just passed env vars
             # 3. We preserve the current session's GUI environment (DISPLAY, DBUS, XDG_*)
+            log_dir = '/tmp/coral'
+            log_file = f'{log_dir}/coral-script.log'
             wrapper_script = f'''#!/bin/bash
 # Ensure HOME is set (may be missing in D-Bus activated processes)
 export HOME="${{HOME:-$(getent passwd $(id -u) | cut -d: -f6)}}"
+
+# Set up logging
+mkdir -p {log_dir}
+exec >> {log_file} 2>&1
+echo ""
+echo "=== $(date '+%Y-%m-%d %H:%M:%S') ==="
+echo "Script: {script_name}"
+echo "Folder: {folder_path}"
 
 # Source shell initialization files to get full user environment
 # Order matters: profile first, then bashrc (like a login interactive shell)
@@ -118,7 +128,9 @@ export NVM_DIR="${{NVM_DIR:-$HOME/.nvm}}"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 
 # Run the actual user script
+echo "Executing script content..."
 {script_content}
+echo "Script finished with exit code: $?"
 '''
 
             # Start with current environment to preserve GUI session variables

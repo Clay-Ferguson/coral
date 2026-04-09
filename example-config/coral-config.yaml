@@ -1,0 +1,88 @@
+# Coral Nautilus Extension Configuration
+# TIP: Run 'nautilus -q' after editing this file, to make it go into effect
+
+search:
+  included:
+    # File extensions to include in searches
+    - "*.md"
+    - "*.txt"
+    - "*.pdf"
+
+  # Patterns to exclude from searches (glob patterns)
+  # These directories/files will be skipped during recursive search
+  excluded:
+    - "*/node_modules/*"
+    - "*/.git/*"
+    - "*/.venv/*"
+    - "*/__pycache__/*"
+    - "*/venv/*"
+    - "*/.svn/*"
+    - "*/.hg/*"
+    - "*/build/*"
+    - "*/dist/*"
+    - "*/.next/*"
+    - "*/.nuxt/*"
+    
+scripts:
+  - name: 🖥️  Open with MkBrowser
+    content: |
+      mk-browser $OPEN_FOLDER
+
+  - name: ▶️  Open with Claude
+    content: |
+      gnome-terminal --working-directory="$OPEN_FOLDER" -- bash -lc "/home/clay/.local/bin/claude; exec bash"
+
+  - name: 🔧  Open in VSCode 
+    content: |
+      code $OPEN_FOLDER
+    
+  # Requires: sudo apt install bubblewrap
+  # Bubblewrap uses a deny-by-default model (stronger than firejail's whitelist approach).
+  # The entire root is mounted read-only, $HOME is hidden behind a tmpfs,
+  # and only the needed directories are bind-mounted back in.
+  - name: 🔒  Open in VSCode (Bubblewrap Secured)
+    content: |
+      # Build bwrap args, skipping --bind for dirs that don't exist
+      BWRAP_ARGS=(
+        --ro-bind / /
+        --tmpfs "$HOME"
+        --dev /dev
+        --proc /proc
+        --tmpfs /tmp
+        --bind /tmp/.X11-unix /tmp/.X11-unix
+        --bind "$OPEN_FOLDER" "$OPEN_FOLDER"
+      )
+
+      # Writable bind-mounts (only if the directory exists)
+      for dir in \
+        "$HOME/.vscode" \
+        "$HOME/.config/Code" \
+        "$HOME/.config/coral" \
+        "$HOME/.nvm" \
+        "$HOME/.yarn" \
+        "$HOME/.npm" \
+        "$HOME/.cache" \
+        "$HOME/.docker"; do
+        [ -d "$dir" ] && BWRAP_ARGS+=(--bind "$dir" "$dir")
+      done
+
+      # Read-only bind-mounts for theming (only if exists)
+      for dir in \
+        "$HOME/.config/gtk-3.0" \
+        "$HOME/.config/gtk-4.0" \
+        "$HOME/.config/dconf" \
+        "$HOME/.icons" \
+        "$HOME/.local/share/icons"; do
+        [ -d "$dir" ] && BWRAP_ARGS+=(--ro-bind "$dir" "$dir")
+      done
+
+      BWRAP_ARGS+=(
+        --bind "$XDG_RUNTIME_DIR" "$XDG_RUNTIME_DIR"
+        --setenv PATH "$HOME/.nvm/versions/node/v22.22.0/bin:$PATH"
+        --new-session
+        --die-with-parent
+        code "$OPEN_FOLDER"
+      )
+
+      bwrap "${BWRAP_ARGS[@]}"
+
