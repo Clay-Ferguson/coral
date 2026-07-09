@@ -9,6 +9,7 @@ from gi.repository import Nautilus, GObject, GLib
 
 # Import our handlers
 from search_ripgrep import SearchHandler
+from search_ugrep import UgrepSearchHandler
 from new_markdown import MarkdownHandler
 from run_script import ScriptRunner
 from run_script_for_folder import OpenFolderHandler
@@ -59,6 +60,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         super().__init__()
         # Initialize the handlers
         self.search_handler = SearchHandler(self.VSCODE_PATH, self.CONFIG_FILE)
+        self.ugrep_search_handler = UgrepSearchHandler(self.CONFIG_FILE)
         self.markdown_handler = MarkdownHandler(self.VSCODE_PATH)
         self.script_runner = ScriptRunner()
         self.open_folder_handler = OpenFolderHandler(self.CONFIG_FILE)
@@ -165,7 +167,16 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
             # Attach submenu to parent
             search_parent.set_submenu(search_submenu)
             items.append(search_parent)
-        
+
+            # Search (UGREP) option - interactive TUI search (no submenu)
+            search_ugrep_item = Nautilus.MenuItem(
+                name='AddNautilusMenuItems::search_ugrep',
+                label='🔍  Search (UGREP)',
+                tip='Interactive search in a terminal using the ugrep TUI'
+            )
+            search_ugrep_item.connect('activate', self.search_ugrep, file)
+            items.append(search_ugrep_item)
+
         # Always add New Markdown option (works for any selection)
         new_markdown_item = Nautilus.MenuItem(
             name='AddNautilusMenuItems::new_markdown_from_selection',
@@ -307,7 +318,16 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         # Attach submenu to parent
         search_parent.set_submenu(search_submenu)
         items.append(search_parent)
-        
+
+        # Search (UGREP) option - interactive TUI search (no submenu)
+        search_ugrep_item = Nautilus.MenuItem(
+            name='AddNautilusMenuItems::search_current_ugrep',
+            label='🔍  Search (UGREP)',
+            tip='Interactive search in a terminal using the ugrep TUI'
+        )
+        search_ugrep_item.connect('activate', self.search_ugrep, current_folder)
+        items.append(search_ugrep_item)
+
         # New Markdown file option
         new_markdown_item = Nautilus.MenuItem(
             name='AddNautilusMenuItems::new_markdown',
@@ -342,6 +362,12 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         Delegate to the search handler for image EXIF text search operations.
         """
         self.search_handler.search_images(menu, folder)
+
+    def search_ugrep(self, menu, folder):
+        """
+        Delegate to the ugrep search handler for interactive TUI search.
+        """
+        self.ugrep_search_handler.search_ugrep(menu, folder)
 
     def new_markdown_from_selection(self, menu, selected_item):
         """

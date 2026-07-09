@@ -123,6 +123,42 @@ rm -rf ~/.cache/coral/image-cache/
 
 The cache will be automatically rebuilt as you search images.
 
+## 🔍 Search (UGREP) (Menu Item)
+**Available:** On folders and empty space (searches current directory)
+
+An experimental, interactive alternative to the standard Search menu. Instead of prompting for a search term with zenity, this launches [ugrep](https://github.com/Genivia/ugrep)'s terminal UI (`ugrep -Q`) in a new terminal window, scoped to the selected folder. You type your search pattern directly in the TUI and see matching results update live as you type.
+
+- **Live incremental search:** Results appear and refine as you type each character
+- **Case-insensitive by default:** Matches Coral's other search modes (toggle with `Alt-i` in the TUI)
+- **PDF content search:** When `pdftotext` is installed, PDF text content is searched too (via ugrep's `--filter` option). Note that unlike the standard Search, extracted PDF text is not cached, so folders with many large PDFs may search noticeably slower
+- **View files in place:** Press `F2` (or `Ctrl-Y`) on a match to view the file (uses `$PAGER`/`$EDITOR`)
+- **Built-in help:** Press `F1` inside the TUI for the full list of keyboard controls
+- **Quit:** Press `q` to exit; the terminal window closes automatically
+
+### Search Query Syntax (UGREP)
+
+The UGREP search launches in **Boolean query mode** (ugrep's `-%` option), which supports Google-style search expressions typed directly in the TUI:
+
+| What you want | What to type | Notes |
+|---|---|---|
+| Exact phrase | `"My Exact String"` | Quotes match the exact phrase, in order, treated literally (special characters like `(`, `*`, `.` lose their regex meaning inside quotes) |
+| All words, any order (AND) | `cat dog` or `"my cat" AND "my dog"` | A space between terms means AND — every term must appear somewhere in the file (not necessarily on the same line) |
+| Any of the terms (OR) | `"my cat" OR "my dog"` | Also `"my cat"\|"my dog"`; matches files containing either phrase |
+| Excluding a term (NOT) | `"my" NOT "dog"` | Also `"my" -"dog"`; matches files containing "my" but not containing "dog" anywhere |
+| Wildcard (match anything between) | `my.*cat` | Unquoted terms are regular expressions, so the "match anything" wildcard is `.*` (not a bare `*`); this example matches "my fluffy white cat" |
+| Combinations | `("error" OR "warning") NOT "test"` | Parentheses group sub-expressions |
+
+**Are quotes needed?** Only when it matters: a single word needs no quotes. For multiple words, `My Exact String` unquoted means *all three words anywhere in the file, in any order* (space = AND), while `"My Exact String"` quoted means *that exact phrase*. When in doubt, quote — quotes also protect special characters (e.g. searching for `file(1)` works quoted, but unquoted it's interpreted as a regex).
+
+**Note:** Boolean queries match at *whole-file* scope (ugrep's `--files` option, which Coral enables) — `"cat" AND "dog"` matches a file with "cat" on one line and "dog" on another. All of this syntax is covered in depth by `ugrep --help bool` or the [ugrep manual](https://ugrep.com/).
+
+This feature coexists with the standard ripgrep-based Search — nothing about the existing search modes changes. The UGREP search honors the same `search.included` and `search.excluded` glob patterns from the Coral config file as the standard Search, so directories like `node_modules` and `.git` are skipped automatically. Press `Alt-g` inside the TUI to view or edit the active globs for the current session.
+
+**Note:** To enable the UGREP search, install ugrep:
+```bash
+sudo apt install ugrep
+```
+
 ## Fallback: Plain `grep` Implementation
 
 The file `search_grep.py` contains an alternative version of the search functionality that uses plain `grep` instead of ripgrep. It is a drop-in replacement for `search_ripgrep.py` — if you ever need to revert to the plain `grep` implementation (for example, on a system where ripgrep is unavailable), simply change the import in `coral_action.py`:
@@ -266,6 +302,7 @@ This ensures the app runs with a TTY and opens in the selected folder.
 - zenity (for graphical prompts)
 - xclip (for clipboard support - install with `sudo apt install xclip`)
 - ripgrep (for file content searching - install with `sudo apt install ripgrep`)
+- ugrep (optional, for the interactive Search (UGREP) TUI - install with `sudo apt install ugrep`)
 - poppler-utils (optional, for PDF search support - install with `sudo apt install poppler-utils`)
 - exiftool (optional, for image EXIF metadata search - install with `sudo apt install libimage-exiftool-perl`)
 
