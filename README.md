@@ -25,19 +25,15 @@ Creates a new timestamped Markdown file and automatically opens it in VS Code. P
 ## 🔍 Search (Menu Item)
 **Available:** On folders and empty space (searches current directory)
 
-![](search.png)
-
 Recursively searches file contents within a folder using [ugrep](https://github.com/Genivia/ugrep)'s interactive terminal UI (`ugrep -Q`), launched in a new terminal window scoped to the folder you right-clicked. You type your search pattern directly in the TUI and see matching results update live as you type — no dialogs, no waiting for a search to finish before you can refine it.
 
 - **Live incremental search:** Results appear and refine as you type each character
-- **Case-insensitive by default:** Toggle with `Alt-i` in the TUI
+- **Case-insensitive by default:** Coral starts the TUI with `-i`
 - **PDF content search:** When `pdftotext` is installed, PDF text content is searched too (via ugrep's `--filter` option)
 - **Configurable exclusions:** Directories like `node_modules`, `.git`, and build folders are skipped automatically via the `search.included` and `search.excluded` glob patterns in your Coral config file
   - See [CONFIG.md](docs/CONFIG.md) for details on customizing search exclusions
-  - Press `Alt-g` inside the TUI to view or edit the active globs for the current session
-- **View files in place:** Press `F2` (or `Ctrl-Y`) on a match to view the file (uses `$PAGER`/`$EDITOR`)
-- **Built-in help:** Press `F1` inside the TUI for the full list of keyboard controls
-- **Quit:** Press `q` to exit; the terminal window closes automatically
+
+See [UGREP Tips](#ugrep-tips) below for how to drive the TUI once it's open.
 
 ### Search Query Syntax
 
@@ -55,6 +51,64 @@ The search launches in **Boolean query mode** (ugrep's `-%` option), which suppo
 **Are quotes needed?** Only when it matters: a single word needs no quotes. For multiple words, `My Exact String` unquoted means *all three words anywhere in the file, in any order* (space = AND), while `"My Exact String"` quoted means *that exact phrase*. When in doubt, quote — quotes also protect special characters (e.g. searching for `file(1)` works quoted, but unquoted it's interpreted as a regex).
 
 **Note:** Boolean queries match at *whole-file* scope (ugrep's `--files` option, which Coral enables) — `"cat" AND "dog"` matches a file with "cat" on one line and "dog" on another. All of this syntax is covered in depth by `ugrep --help bool` or the [ugrep manual](https://ugrep.com/).
+
+## UGREP Tips
+
+These all apply to the TUI that opens when you click **Search** — they're keystrokes you press inside that window, not things you type on a command line.
+
+### Show only filenames (hide the matching lines)
+
+Press **`Alt-l`**. That's the one worth memorizing.
+
+By default the TUI lists every matching *line* along with the file it came from. `Alt-l` toggles ugrep's `-l` option, which collapses the display down to a plain list of matching filenames — one per file, no line content. Press `Alt-l` again to switch back to the full line view.
+
+This is especially useful with Coral's Boolean search: because Coral runs in whole-file mode, a query like `"cat" AND "dog"` matches a file with "cat" in one place and "dog" in another, so the filename list is often the answer you actually want.
+
+### Toggling other options
+
+The general rule: **`Alt` + an option letter toggles that ugrep option on and off.** Press it once to enable, again to disable. (If your terminal eats `Alt` key combos, press `Ctrl-O` and then the letter instead.)
+
+| Key | Toggles | Effect |
+|---|---|---|
+| `Alt-l` | `-l` | Filenames only, no line content |
+| `Alt-c` | `-c` | Show a count of matches per file |
+| `Alt-n` | `-n` | Show/hide line numbers |
+| `Alt-i` | `-i` | Case sensitivity (Coral starts with case-*insensitive*, so this makes it case-sensitive) |
+| `Alt-w` | `-w` | Match whole words only |
+| `Alt-v` | `-v` | Invert the match — show what *doesn't* match |
+| `Alt-.` | `-.` | Include hidden dotfiles, which are skipped by default |
+| `Alt-]` | — | Increase the lines of context shown around each match |
+| `Alt-g` | `-g` | Edit the active file/directory globs for this session; `Esc` returns to the search prompt |
+
+The prompt at the left edge tells you what mode you're in: `Q>` is the normal Boolean query prompt, and it changes to `F>`, `G>`, `P>`, or `Z>` when you switch to fixed-string, basic-regex, Perl, or fuzzy matching.
+
+### Moving around the results
+
+| Key | Does |
+|---|---|
+| `Up` / `Down` | Scroll the result list one line |
+| `PgUp` / `PgDn` | Scroll a full page |
+| `Tab` | Descend into the directory of the file at the top of the screen (narrows the search to it) |
+| `Shift-Tab` | Go back up one directory level |
+| `Ctrl-^` | Jump all the way back to the folder you started in |
+| `Ctrl-S` | Jump to the next file in the results |
+| `Ctrl-W` | Jump back to the previous file |
+
+Note that your typing always goes into the search pattern, so navigation is done with these control and arrow keys rather than plain letters.
+
+### Looking at a file
+
+- **`Ctrl-T`** (or `F5`) splits the screen and previews the file at the top of the results in the bottom pane — the fastest way to check whether a hit is the one you want without leaving the search.
+- **`Ctrl-Y`** (or `F2`) opens the file at the top of the screen in your `$PAGER` or `$EDITOR`. Filenames have to be visible in the output for this to work.
+
+### Getting out
+
+- **`Esc`** (or `Ctrl-C`) backs out one step, and exits the TUI from the top level. The terminal window closes on its own.
+- **`Enter`** switches into selection mode, where `Enter` / `Del` mark individual result lines and `A` selects all of them. **`Ctrl-Q`** then exits and prints just the selected lines to the terminal — handy for copying a set of paths out. Without selecting anything, ugrep exits silently and prints nothing.
+
+### Built-in help
+
+Press **`F1`** (or `Ctrl-Z`) at any time for ugrep's own help screen, which lists every option and lets you toggle them from there. It's the authoritative reference if you need something not covered above.
 
 **Note:** Search requires ugrep (installed by `setup.sh`, or manually):
 ```bash
