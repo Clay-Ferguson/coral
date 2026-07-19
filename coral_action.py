@@ -8,8 +8,7 @@ from datetime import datetime
 from gi.repository import Nautilus, GObject, GLib
 
 # Import our handlers
-from search_ripgrep import SearchHandler
-from search_ugrep import UgrepSearchHandler
+from search_ugrep import SearchHandler
 from new_markdown import MarkdownHandler
 from run_script import ScriptRunner
 from run_script_for_folder import OpenFolderHandler
@@ -59,8 +58,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         """
         super().__init__()
         # Initialize the handlers
-        self.search_handler = SearchHandler(self.VSCODE_PATH, self.CONFIG_FILE)
-        self.ugrep_search_handler = UgrepSearchHandler(self.CONFIG_FILE)
+        self.search_handler = SearchHandler(self.CONFIG_FILE)
         self.markdown_handler = MarkdownHandler(self.VSCODE_PATH)
         self.script_runner = ScriptRunner()
         self.open_folder_handler = OpenFolderHandler(self.CONFIG_FILE)
@@ -99,83 +97,15 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         file = files[0]
         items = []
         
-        # Add Search submenu for directories (first item)
+        # Add Search for directories (first item)
         if file.is_directory():
-            search_parent = Nautilus.MenuItem(
-                name='AddNautilusMenuItems::search_parent',
+            search_item = Nautilus.MenuItem(
+                name='AddNautilusMenuItems::search',
                 label='🔍  Search',
-                tip='Search options'
+                tip='Interactive search in a terminal'
             )
-            
-            # Create submenu
-            search_submenu = Nautilus.Menu()
-            
-            # Literal search option
-            literal_item = Nautilus.MenuItem(
-                name='AddNautilusMenuItems::search_literal',
-                label=f'{self.MENU_ICON}Literal',
-                tip='Search for exact text (no special characters)'
-            )
-            literal_item.connect('activate', self.search_folder, file, 'literal')
-            search_submenu.append_item(literal_item)
-            
-            # Basic regex search option
-            regex_item = Nautilus.MenuItem(
-                name='AddNautilusMenuItems::search_regex',
-                label=f'{self.MENU_ICON}Basic Regex',
-                tip='Search using basic regular expressions'
-            )
-            regex_item.connect('activate', self.search_folder, file, 'regex')
-            search_submenu.append_item(regex_item)
-            
-            # Extended regex search option
-            extended_item = Nautilus.MenuItem(
-                name='AddNautilusMenuItems::search_extended',
-                label=f'{self.MENU_ICON}Extended Regex',
-                tip='Search using extended regular expressions (|, +, ?, etc.)'
-            )
-            extended_item.connect('activate', self.search_folder, file, 'extended')
-            search_submenu.append_item(extended_item)
-            
-            # File OR search option
-            file_or_item = Nautilus.MenuItem(
-                name='AddNautilusMenuItems::search_file_or',
-                label=f'{self.MENU_ICON}File OR',
-                tip='Search for files containing any of the quoted terms (e.g., "abc" "def")'
-            )
-            file_or_item.connect('activate', self.search_folder, file, 'file-or')
-            search_submenu.append_item(file_or_item)
-            
-            # File AND search option
-            file_and_item = Nautilus.MenuItem(
-                name='AddNautilusMenuItems::search_file_and',
-                label=f'{self.MENU_ICON}File AND',
-                tip='Search for files containing all of the quoted terms (e.g., "abc" "def")'
-            )
-            file_and_item.connect('activate', self.search_folder, file, 'file-and')
-            search_submenu.append_item(file_and_item)
-            
-            # Search Images option
-            search_images_item = Nautilus.MenuItem(
-                name='AddNautilusMenuItems::search_images',
-                label=f'{self.MENU_ICON}Search Images',
-                tip='Search image EXIF text metadata (descriptions, comments, keywords, etc.)'
-            )
-            search_images_item.connect('activate', self.search_images, file)
-            search_submenu.append_item(search_images_item)
-            
-            # Attach submenu to parent
-            search_parent.set_submenu(search_submenu)
-            items.append(search_parent)
-
-            # Search (UGREP) option - interactive TUI search (no submenu)
-            search_ugrep_item = Nautilus.MenuItem(
-                name='AddNautilusMenuItems::search_ugrep',
-                label='🔍  Search (UGREP)',
-                tip='Interactive search in a terminal using the ugrep TUI'
-            )
-            search_ugrep_item.connect('activate', self.search_ugrep, file)
-            items.append(search_ugrep_item)
+            search_item.connect('activate', self.search_folder, file)
+            items.append(search_item)
 
         # Always add New Markdown option (works for any selection)
         new_markdown_item = Nautilus.MenuItem(
@@ -251,82 +181,14 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         """
         items = []
         
-        # Search submenu for current folder (first item)
-        search_parent = Nautilus.MenuItem(
-            name='AddNautilusMenuItems::search_current_parent',
+        # Search for current folder (first item)
+        search_item = Nautilus.MenuItem(
+            name='AddNautilusMenuItems::search_current',
             label='🔍  Search',
-            tip='Search options'
+            tip='Interactive search in a terminal'
         )
-        
-        # Create submenu
-        search_submenu = Nautilus.Menu()
-        
-        # Literal search option
-        literal_item = Nautilus.MenuItem(
-            name='AddNautilusMenuItems::search_current_literal',
-            label=f'{self.MENU_ICON}Literal',
-            tip='Search for exact text (no special characters)'
-        )
-        literal_item.connect('activate', self.search_folder, current_folder, 'literal')
-        search_submenu.append_item(literal_item)
-        
-        # Basic regex search option
-        regex_item = Nautilus.MenuItem(
-            name='AddNautilusMenuItems::search_current_regex',
-            label=f'{self.MENU_ICON}Basic Regex',
-            tip='Search using basic regular expressions'
-        )
-        regex_item.connect('activate', self.search_folder, current_folder, 'regex')
-        search_submenu.append_item(regex_item)
-        
-        # Extended regex search option
-        extended_item = Nautilus.MenuItem(
-            name='AddNautilusMenuItems::search_current_extended',
-            label=f'{self.MENU_ICON}Extended Regex',
-            tip='Search using extended regular expressions (|, +, ?, etc.)'
-        )
-        extended_item.connect('activate', self.search_folder, current_folder, 'extended')
-        search_submenu.append_item(extended_item)
-        
-        # File OR search option
-        file_or_item = Nautilus.MenuItem(
-            name='AddNautilusMenuItems::search_current_file_or',
-            label=f'{self.MENU_ICON}File OR',
-            tip='Search for files containing any of the quoted terms (e.g., "abc" "def")'
-        )
-        file_or_item.connect('activate', self.search_folder, current_folder, 'file-or')
-        search_submenu.append_item(file_or_item)
-        
-        # File AND search option
-        file_and_item = Nautilus.MenuItem(
-            name='AddNautilusMenuItems::search_current_file_and',
-            label=f'{self.MENU_ICON}File AND',
-            tip='Search for files containing all of the quoted terms (e.g., "abc" "def")'
-        )
-        file_and_item.connect('activate', self.search_folder, current_folder, 'file-and')
-        search_submenu.append_item(file_and_item)
-        
-        # Search Images option
-        search_images_item = Nautilus.MenuItem(
-            name='AddNautilusMenuItems::search_current_images',
-            label=f'{self.MENU_ICON}Search Images',
-            tip='Search image EXIF text metadata (descriptions, comments, keywords, etc.)'
-        )
-        search_images_item.connect('activate', self.search_images, current_folder)
-        search_submenu.append_item(search_images_item)
-        
-        # Attach submenu to parent
-        search_parent.set_submenu(search_submenu)
-        items.append(search_parent)
-
-        # Search (UGREP) option - interactive TUI search (no submenu)
-        search_ugrep_item = Nautilus.MenuItem(
-            name='AddNautilusMenuItems::search_current_ugrep',
-            label='🔍  Search (UGREP)',
-            tip='Interactive search in a terminal using the ugrep TUI'
-        )
-        search_ugrep_item.connect('activate', self.search_ugrep, current_folder)
-        items.append(search_ugrep_item)
+        search_item.connect('activate', self.search_folder, current_folder)
+        items.append(search_item)
 
         # New Markdown file option
         new_markdown_item = Nautilus.MenuItem(
@@ -348,26 +210,14 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         
         return items
 
-    def search_folder(self, menu, folder, search_type='literal'):
+    def search_folder(self, menu, folder):
         """
-        Delegate to the search handler for folder search operations.
-        
+        Delegate to the search handler for interactive folder search.
+
         This is a wrapper method that maintains the existing menu interface
         while delegating the actual search functionality to the SearchHandler.
         """
-        self.search_handler.search_folder(menu, folder, search_type)
-
-    def search_images(self, menu, folder):
-        """
-        Delegate to the search handler for image EXIF text search operations.
-        """
-        self.search_handler.search_images(menu, folder)
-
-    def search_ugrep(self, menu, folder):
-        """
-        Delegate to the ugrep search handler for interactive TUI search.
-        """
-        self.ugrep_search_handler.search_ugrep(menu, folder)
+        self.search_handler.search_folder(menu, folder)
 
     def new_markdown_from_selection(self, menu, selected_item):
         """

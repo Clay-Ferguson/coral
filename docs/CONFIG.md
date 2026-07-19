@@ -15,7 +15,7 @@ search:
     - "*.txt"     # And text files
 ```
 
-**Note:** When include patterns are specified, only files matching these patterns will be searched for content. The filename search (Files & Folders section) is not affected by include patterns.
+**Note:** When include patterns are specified, only files matching these patterns will be searched.
 
 #### Common Include Patterns
 
@@ -53,10 +53,11 @@ search:
 
 #### How Exclusions Work
 
-- Exclusions use **glob patterns** that are passed to the `find` command
+- Exclusions use **glob patterns**, which Coral converts into `ugrep -g` exclusion globs
 - The `*` wildcard matches any characters
 - Patterns are matched against the full path
 - Excluded directories are pruned from the search (not descended into)
+- Press `Alt-g` inside the search TUI to view or edit the active globs for that session
 
 #### Common Patterns to Exclude
 

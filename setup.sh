@@ -15,18 +15,21 @@ mkdir -p "$ACTIONS_DIR"
 # Copy the Python extension from the project directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cp "$SCRIPT_DIR/coral_action.py" "$ACTION_FILE"
-cp "$SCRIPT_DIR/search_ripgrep.py" "$ACTIONS_DIR/search_ripgrep.py"
 cp "$SCRIPT_DIR/search_ugrep.py" "$ACTIONS_DIR/search_ugrep.py"
 cp "$SCRIPT_DIR/new_markdown.py" "$ACTIONS_DIR/new_markdown.py"
 cp "$SCRIPT_DIR/run_script_for_folder.py" "$ACTIONS_DIR/run_script_for_folder.py"
 cp "$SCRIPT_DIR/run_script.py" "$ACTIONS_DIR/run_script.py"
+
+# Remove stale search modules left behind by older installs
+rm -f "$ACTIONS_DIR/search_grep.py" "$ACTIONS_DIR/search_ripgrep.py"
+rm -rf "$ACTIONS_DIR/__pycache__"
 
 # Make sure it's executable
 chmod +x "$ACTION_FILE"
 
 # Install python3-nautilus if needed
 echo "Installing required dependencies..."
-sudo apt update && sudo apt install -y python3-nautilus python3-yaml ripgrep ugrep poppler-utils libimage-exiftool-perl
+sudo apt update && sudo apt install -y python3-nautilus python3-yaml ugrep poppler-utils
 
 # Install bubblewrap if not already installed
 # See example YAML for why we might want to install (and do install) bubblewrap here,

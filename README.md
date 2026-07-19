@@ -27,117 +27,21 @@ Creates a new timestamped Markdown file and automatically opens it in VS Code. P
 
 ![](search.png)
 
-Recursively searches for text content within all files in a folder, including inside PDF files, **plus** searches for matching filenames and folder names. Results are displayed in an interactive zenity pick list where you can select files to open.
-
-**Three Search Modes:**
-
-The Search menu contains a submenu with three powerful search options:
-
-1. **Literal** - Exact text matching with no special characters
-   - Searches for the exact text you enter
-   - Special characters like `.`, `*`, `|`, `?` are treated as literal text
-   - Perfect for finding file paths, URLs, or text containing special symbols
-   - Example: Searching for `file*.txt` finds that exact string, not a wildcard pattern
-
-2. **Basic Regex** - Standard regular expression patterns
-   - Uses ripgrep's regex engine for pattern matching
-   - Supports `.` (any char), `*` (zero or more), `^` (start), `$` (end), `[...]` (character classes)
-   - Great for flexible pattern matching with common wildcards
-   - See [BASIC-REGEX-TIPS.md](docs/BASIC-REGEX-TIPS.md) for comprehensive examples and patterns
-
-3. **Extended Regex** - Advanced regular expression patterns
-   - Uses ripgrep's regex engine with full extended pattern support
-   - Supports `|` (OR), `+` (one or more), `?` (optional), `{n,m}` (repetition), `()` (grouping)
-   - Perfect for complex searches like `error|warning|critical` or `https?://`
-   - See [EXTENDED-REGEX-TIPS.md](docs/EXTENDED-REGEX-TIPS.md) for comprehensive examples and patterns
-
-**Search Features:**
-
-- **Comprehensive search:** Searches file content (using `rg` (ripgrep) for regular files and `pdftotext` for PDFs) **and** searches filenames and folder names (using `find`)
-- **Filename matching:** Always uses literal/case-insensitive matching for filenames and folder names, regardless of selected search mode
-- **Interactive prompting:** Enter your search term via a friendly `zenity` dialog
-- **Live feedback:** Terminal window shows search progress in real-time
-- **Interactive results:** Results are displayed in a zenity GUI pick list for easy file selection
-- **Persistent selection:** The pick list stays open so you can open multiple files without re-searching
-- **Smart file opening:** Markdown and text files (`.md`, `.txt`) open in VS Code; other files open with your system's default application (e.g., PDFs open in your PDF viewer)
-- **Case-insensitive:** All search modes ignore case for better matching
-- **PDF support detection:** Automatically checks for `pdftotext` and provides installation instructions if needed
-- **Configurable exclusions:** Exclude directories like `node_modules`, `.git`, build folders, etc. from searches
-  - See [CONFIG.md](docs/CONFIG.md) for details on customizing search exclusions
-
-4. **Search Images** - Search image EXIF text metadata
-   - Searches image files (PNG, JPG, JPEG, GIF, WebP, TIFF, BMP, HEIC) for matching EXIF text metadata
-   - Scans fields like Description, ImageDescription, Caption, Comment, UserComment, Subject, Title, and Keywords
-   - Uses `exiftool` for metadata extraction and `rg` (ripgrep) for matching
-   - Great for finding photos by description, caption, or keyword tags
-   - Example: Searching for `sunset` finds images whose EXIF metadata contains that word
-
-**Note:** To enable PDF searching, install poppler-utils:
-```bash
-sudo apt install poppler-utils
-```
-
-**Note:** To enable image EXIF searching, install exiftool:
-```bash
-sudo apt install libimage-exiftool-perl
-```
-
-### 📊 PDF Search Performance & Cache
-
-Coral caches PDF text content to dramatically improve search performance. When a PDF is first searched, `pdftotext` extracts the text and stores it in `$HOME/.cache/coral/pdf-cache/`. Subsequent searches use the cached text instead of re-extracting, making searches much faster.
-
-**How the cache works:**
-- Cache files are stored in `$HOME/.cache/coral/pdf-cache/`
-- Each PDF gets a unique cache file based on its path and modification time
-- Cache automatically invalidates when a PDF is modified
-- No manual cache management needed for most use cases
-
-**Clearing the cache:**
-
-If you work with many PDFs that change frequently, the cache directory may grow large over time. You can safely delete the cache at any time:
-
-```bash
-rm -rf ~/.cache/coral/pdf-cache/
-```
-
-The cache will be automatically rebuilt as you search PDFs. Consider clearing it periodically if:
-- You have limited disk space
-- PDFs on your system change frequently
-- You want to free up space from old, no-longer-used PDF cache files
-
-### 🖼️ Image Search Performance & Cache
-
-Similar to PDF caching, Coral caches image EXIF text metadata to speed up repeated searches. When an image is first searched, `exiftool` extracts the text metadata and stores it in `$HOME/.cache/coral/image-cache/`. Subsequent searches use the cached output instead of re-running `exiftool`.
-
-**How the cache works:**
-- Cache files are stored in `$HOME/.cache/coral/image-cache/`
-- Each image gets a unique cache file based on its path and modification time
-- Cache automatically invalidates when an image is modified
-- No manual cache management needed for most use cases
-
-**Clearing the cache:**
-
-```bash
-rm -rf ~/.cache/coral/image-cache/
-```
-
-The cache will be automatically rebuilt as you search images.
-
-## 🔍 Search (UGREP) (Menu Item)
-**Available:** On folders and empty space (searches current directory)
-
-An experimental, interactive alternative to the standard Search menu. Instead of prompting for a search term with zenity, this launches [ugrep](https://github.com/Genivia/ugrep)'s terminal UI (`ugrep -Q`) in a new terminal window, scoped to the selected folder. You type your search pattern directly in the TUI and see matching results update live as you type.
+Recursively searches file contents within a folder using [ugrep](https://github.com/Genivia/ugrep)'s interactive terminal UI (`ugrep -Q`), launched in a new terminal window scoped to the folder you right-clicked. You type your search pattern directly in the TUI and see matching results update live as you type — no dialogs, no waiting for a search to finish before you can refine it.
 
 - **Live incremental search:** Results appear and refine as you type each character
-- **Case-insensitive by default:** Matches Coral's other search modes (toggle with `Alt-i` in the TUI)
-- **PDF content search:** When `pdftotext` is installed, PDF text content is searched too (via ugrep's `--filter` option). Note that unlike the standard Search, extracted PDF text is not cached, so folders with many large PDFs may search noticeably slower
+- **Case-insensitive by default:** Toggle with `Alt-i` in the TUI
+- **PDF content search:** When `pdftotext` is installed, PDF text content is searched too (via ugrep's `--filter` option)
+- **Configurable exclusions:** Directories like `node_modules`, `.git`, and build folders are skipped automatically via the `search.included` and `search.excluded` glob patterns in your Coral config file
+  - See [CONFIG.md](docs/CONFIG.md) for details on customizing search exclusions
+  - Press `Alt-g` inside the TUI to view or edit the active globs for the current session
 - **View files in place:** Press `F2` (or `Ctrl-Y`) on a match to view the file (uses `$PAGER`/`$EDITOR`)
 - **Built-in help:** Press `F1` inside the TUI for the full list of keyboard controls
 - **Quit:** Press `q` to exit; the terminal window closes automatically
 
-### Search Query Syntax (UGREP)
+### Search Query Syntax
 
-The UGREP search launches in **Boolean query mode** (ugrep's `-%` option), which supports Google-style search expressions typed directly in the TUI:
+The search launches in **Boolean query mode** (ugrep's `-%` option), which supports Google-style search expressions typed directly in the TUI:
 
 | What you want | What to type | Notes |
 |---|---|---|
@@ -152,26 +56,15 @@ The UGREP search launches in **Boolean query mode** (ugrep's `-%` option), which
 
 **Note:** Boolean queries match at *whole-file* scope (ugrep's `--files` option, which Coral enables) — `"cat" AND "dog"` matches a file with "cat" on one line and "dog" on another. All of this syntax is covered in depth by `ugrep --help bool` or the [ugrep manual](https://ugrep.com/).
 
-This feature coexists with the standard ripgrep-based Search — nothing about the existing search modes changes. The UGREP search honors the same `search.included` and `search.excluded` glob patterns from the Coral config file as the standard Search, so directories like `node_modules` and `.git` are skipped automatically. Press `Alt-g` inside the TUI to view or edit the active globs for the current session.
-
-**Note:** To enable the UGREP search, install ugrep:
+**Note:** Search requires ugrep (installed by `setup.sh`, or manually):
 ```bash
 sudo apt install ugrep
 ```
 
-## Fallback: Plain `grep` Implementation
-
-The file `search_grep.py` contains an alternative version of the search functionality that uses plain `grep` instead of ripgrep. It is a drop-in replacement for `search_ripgrep.py` — if you ever need to revert to the plain `grep` implementation (for example, on a system where ripgrep is unavailable), simply change the import in `coral_action.py`:
-
-```python
-# Change this:
-from search_ripgrep import SearchHandler
-
-# To this:
-from search_grep import SearchHandler
+To additionally search inside PDF files, install poppler-utils:
+```bash
+sudo apt install poppler-utils
 ```
-
-`search_grep.py` is kept in the repository as a fallback but is not the active implementation. The ripgrep-based implementation (`search_ripgrep.py`) is significantly faster, especially on large directory trees.
 
 ## 📋 Copy Full Path (Menu Item)
 **Available:** On files and folders
@@ -301,8 +194,6 @@ This ensures the app runs with a TTY and opens in the selected folder.
 - Python 3 with Nautilus bindings (automatically installed by setup script)
 - zenity (for graphical prompts)
 - xclip (for clipboard support - install with `sudo apt install xclip`)
-- ripgrep (for file content searching - install with `sudo apt install ripgrep`)
-- ugrep (optional, for the interactive Search (UGREP) TUI - install with `sudo apt install ugrep`)
+- ugrep (for the interactive Search TUI - install with `sudo apt install ugrep`)
 - poppler-utils (optional, for PDF search support - install with `sudo apt install poppler-utils`)
-- exiftool (optional, for image EXIF metadata search - install with `sudo apt install libimage-exiftool-perl`)
 

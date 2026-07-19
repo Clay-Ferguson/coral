@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 """
-Search functionality for the Coral Nautilus extension (ugrep TUI implementation).
+Search functionality for the Coral Nautilus extension.
 
 This module launches ugrep's interactive query TUI (-Q) in a terminal,
 letting the user type a search pattern and see live results as they type.
-Unlike the ripgrep implementation (search_ripgrep.py), no zenity dialogs
-are needed—all interaction happens inside ugrep's own terminal UI.
+No zenity dialogs are needed—all interaction happens inside ugrep's own
+terminal UI.
 
-This is an experimental alternative that lives alongside the ripgrep-based
-search; it does not replace it. It honors the same search.excluded and
-search.included glob patterns from the Coral config file.
+It honors the search.excluded and search.included glob patterns from the
+Coral config file.
 """
 
 import os
@@ -26,12 +25,12 @@ except ImportError:
     YAML_AVAILABLE = False
 
 
-class UgrepSearchHandler:
+class SearchHandler:
     """Handles interactive search operations using the ugrep TUI."""
 
     def __init__(self, config_file):
         """
-        Initialize the ugrep search handler.
+        Initialize the search handler.
 
         Args:
             config_file (str): Path to the Coral config file
@@ -130,7 +129,7 @@ class UgrepSearchHandler:
 
         return ' '.join(parts)
 
-    def search_ugrep(self, menu, folder):
+    def search_folder(self, menu, folder):
         """
         Launch the ugrep interactive TUI scoped to the selected folder.
 
@@ -185,7 +184,7 @@ class UgrepSearchHandler:
         ugrep_cmd = ' '.join(cmd_parts)
 
         # Check for ugrep inside the terminal so missing-dependency instructions
-        # are shown to the user (mirrors the rg/exiftool checks in search_ripgrep.py)
+        # are shown to the user
         inner = (
             'if ! command -v ugrep >/dev/null 2>&1; then '
             'echo "ERROR: ugrep not found. Please install it:"; '
@@ -201,7 +200,7 @@ class UgrepSearchHandler:
         try:
             # Working directory set to the folder so the TUI shows short relative paths;
             # searching '.' with -r recurses from there. -i presets case-insensitive
-            # matching (consistent with Coral's other searches); toggle in TUI via Alt-i.
+            # matching; toggle in TUI via Alt-i.
             subprocess.Popen([
                 'gnome-terminal',
                 f'--working-directory={folder_path}',
