@@ -6,7 +6,7 @@
 
 A developer-focused extension for Nautilus file manager that adds convenient context menu actions to streamline your workflow. Coral enhances Nautilus with productivity tools specifically designed for software developers.
 
-Coral adds menu items to the Nautilus right-click popup menu as shown in the image below: New Markdown, Search, Copy Full Path, Run Script, and Custom Scripts. The Coral Nautilus extension adds the ability to create a new markdown file in any folder using a single mouse click (a nice productivity aid), recursively search for text content across all files including PDFs, copy a file or folder's full path to the clipboard, run shell scripts with a single click, and run custom YAML-defined scripts against folders. All of these tasks are very common for developers, and it's nice to have these embedded on a menu for a single click right inside Nautilus. 
+Coral adds menu items to the Nautilus right-click popup menu as shown in the image below: New Markdown, Search (Interactive), Search (Static), Copy Full Path, Run Script, and Custom Scripts. The Coral Nautilus extension adds the ability to create a new markdown file in any folder using a single mouse click (a nice productivity aid), recursively search for text content across all files including PDFs, copy a file or folder's full path to the clipboard, run shell scripts with a single click, and run custom YAML-defined scripts against folders. All of these tasks are very common for developers, and it's nice to have these embedded on a menu for a single click right inside Nautilus. 
 
 Coral seamlessly integrates with Nautilus to provide quick access to common developer tasks directly from the file manager's context menu. No more switching between applications or remembering complex terminal commands - everything you need is just a right-click away.
 
@@ -22,7 +22,7 @@ Creates a new timestamped Markdown file and automatically opens it in VS Code. P
 - **Automatic timestamping:** Files are named with the current date and time (YYYY-MM-DD--HH-MM-SS format)
 - **Instant editing:** Opens immediately in VS Code for seamless workflow
 
-## 🔍 Search (Menu Item)
+## 🔍 Search (Interactive) (Menu Item)
 **Available:** On folders and empty space (searches current directory)
 
 Recursively searches file contents within a folder using [ugrep](https://github.com/Genivia/ugrep)'s interactive terminal UI (`ugrep -Q`), launched in a new terminal window scoped to the folder you right-clicked. You type your search pattern directly in the TUI and see matching results update live as you type — no dialogs, no waiting for a search to finish before you can refine it.
@@ -52,9 +52,20 @@ The search launches in **Boolean query mode** (ugrep's `-%` option), which suppo
 
 **Note:** Boolean queries match at *whole-file* scope (ugrep's `--files` option, which Coral enables) — `"cat" AND "dog"` matches a file with "cat" on one line and "dog" on another. All of this syntax is covered in depth by `ugrep --help bool` or the [ugrep manual](https://ugrep.com/).
 
+## 🔍 Search (Static) (Menu Item)
+**Available:** On folders and empty space (searches current directory)
+
+A one-shot version of the search above, for when you want the *list of matching files* as a document you can keep, scroll, and click through rather than a live TUI session.
+
+A terminal opens and prompts you for a search string. Press Enter and Coral runs the same ugrep search (same Boolean query syntax, same config exclusions, same PDF support), writes the full path of every matching file to a timestamped file in `/tmp` — `/tmp/coral-search-YYYY-MM-DD--HH-MM-SS.txt` — and opens that file in VS Code. From there you can Ctrl-click any path to jump straight to the file.
+
+- **Results as a file:** Every hit is a full path on its own line, so the list can be edited, saved, or fed into other tools
+- **Terminal closes itself:** Once the results are open in VS Code the terminal window goes away; it stays open only to report an error or "no files matched"
+- **Same query syntax and exclusions:** See [Search Query Syntax](#search-query-syntax) above, and the `search.included` / `search.excluded` patterns in your config file
+
 ## UGREP Tips
 
-These all apply to the TUI that opens when you click **Search** — they're keystrokes you press inside that window, not things you type on a command line.
+These all apply to the TUI that opens when you click **Search (Interactive)** — they're keystrokes you press inside that window, not things you type on a command line.
 
 ### Show only filenames (hide the matching lines)
 
@@ -110,7 +121,7 @@ Note that your typing always goes into the search pattern, so navigation is done
 
 Press **`F1`** (or `Ctrl-Z`) at any time for ugrep's own help screen, which lists every option and lets you toggle them from there. It's the authoritative reference if you need something not covered above.
 
-**Note:** Search requires ugrep (installed by `setup.sh`, or manually):
+**Note:** Both Search menu items require ugrep (installed by `setup.sh`, or manually):
 ```bash
 sudo apt install ugrep
 ```

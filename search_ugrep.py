@@ -107,7 +107,7 @@ class SearchHandler:
         # Anything else (e.g., '*.log') excludes by basename as-is
         return f'!{pattern}'
 
-    def _build_ugrep_glob_args(self, excluded_patterns, included_patterns):
+    def build_ugrep_glob_list(self, excluded_patterns, included_patterns):
         """
         Build repeated -g arguments for ugrep from config patterns.
 
@@ -116,18 +116,31 @@ class SearchHandler:
             included_patterns (list): List of inclusion glob patterns
 
         Returns:
-            str: Space-separated, shell-quoted -g arguments for the ugrep command
+            list: Flat argv list, e.g. ['-g', '!node_modules/', '-g', '*.md']
         """
-        parts = []
+        args = []
 
         for pattern in excluded_patterns:
-            glob = self._convert_excluded_pattern_to_ugrep_glob(pattern)
-            parts.append(f'-g {shlex.quote(glob)}')
+            args.extend(['-g', self._convert_excluded_pattern_to_ugrep_glob(pattern)])
 
         for pattern in included_patterns:
-            parts.append(f'-g {shlex.quote(pattern)}')
+            args.extend(['-g', pattern])
 
-        return ' '.join(parts)
+        return args
+
+    def _build_ugrep_glob_args(self, excluded_patterns, included_patterns):
+        """
+        Build repeated -g arguments for ugrep as a shell-quoted string.
+
+        Args:
+            excluded_patterns (list): List of find-style exclusion glob patterns
+            included_patterns (list): List of inclusion glob patterns
+
+        Returns:
+            str: Space-separated, shell-quoted -g arguments for the ugrep command
+        """
+        args = self.build_ugrep_glob_list(excluded_patterns, included_patterns)
+        return ' '.join(shlex.quote(arg) for arg in args)
 
     def search_folder(self, menu, folder):
         """
