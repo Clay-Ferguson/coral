@@ -51,7 +51,8 @@ class StaticSearchHandler(SearchHandler):
         selected folder. As with the interactive search, -% enables Boolean
         query mode ("quoted phrases" are literal, space/AND requires all terms,
         OR matches any, NOT/- excludes) and --files applies the query at
-        whole-file scope. The matching paths are then displayed by
+        whole-file scope. The script then sorts the hits by modification time,
+        newest first. The matching paths are then displayed by
         `search_results_dialog.sh` in a scrollable zenity list that stays open
         while the user opens files from it; the terminal closes itself once the
         search finishes.

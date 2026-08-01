@@ -71,7 +71,10 @@ echo "Searching..."
 
 # -l lists matching file names only; -% is Boolean query mode and --files
 # applies the query at whole-file scope. -- ends option processing so a query
-# beginning with '-' (Boolean NOT) is still read as the pattern.
+# beginning with '-' (Boolean NOT) is still read as the pattern. No --sort here
+# on purpose: ugrep sorts within each directory and emits subdirectories after
+# the files, so --sort=rchanged does not give a tree-wide newest-first order.
+# The sort below does that instead.
 ugrep -r -i -l -% --files "${UGREP_ARGS[@]}" -- "$QUERY" "$SEARCH_DIR" > "$RESULTS_FILE"
 STATUS=$?
 
@@ -88,6 +91,28 @@ if [ "$COUNT" -eq 0 ]; then
     echo "No files matched: $QUERY"
     rm -f "$RESULTS_FILE"
     pause_and_exit 0
+fi
+
+# Reorder the hits newest-first, tree-wide, so the most recently edited files
+# land at the top of the results dialog (and survive its row cap). ugrep's own
+# --sort only orders within a directory, so the sort has to happen out here on
+# the finished list. stat prints each file's mtime as epoch seconds ahead of
+# its path; sorting numerically in reverse on that first field and then cutting
+# from field 2 onward leaves the paths in the wanted order with any tab inside
+# a filename intact. Files that disappeared since the search drop out silently;
+# only an empty or failed result falls back to ugrep's original ordering.
+if [ "$COUNT" -gt 1 ]; then
+    SORTED_FILE=$(mktemp "/tmp/coral-search-sorted-XXXXXX.txt" 2>/dev/null)
+    if [ -n "$SORTED_FILE" ]; then
+        if xargs -d '\n' -r stat --printf '%Y\t%n\n' -- < "$RESULTS_FILE" 2>/dev/null \
+            | sort -rn -k1,1 | cut -f2- > "$SORTED_FILE" && [ -s "$SORTED_FILE" ]; then
+            mv "$SORTED_FILE" "$RESULTS_FILE"
+            COUNT=$(wc -l < "$RESULTS_FILE")
+        else
+            echo "(could not sort by modification time; showing ugrep's order)"
+            rm -f "$SORTED_FILE"
+        fi
+    fi
 fi
 
 echo "$COUNT file(s) matched. Opening results..."

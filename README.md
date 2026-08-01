@@ -62,10 +62,11 @@ A terminal opens and prompts you for a search string. Press Enter and Coral runs
 - **The dialog stays open:** Open a file, look at it, come back — the list is still there. It closes when you press **Close** or close the window
 - **Open several at once:** Ctrl-click or Shift-click to select multiple rows, then press **Open**
 - **Opens the right app:** Text-like files open in VS Code; PDFs, images, and other binary formats open in whatever application your desktop uses for them (via `xdg-open`), since VS Code can't display them
+- **Newest first:** Results are listed in reverse chronological order of modification time, so the files you edited most recently are at the top
 - **Readable paths:** Rows show the path relative to the folder you searched, with the full root shown above the list
 - **Same query syntax and exclusions:** See [Search Query Syntax](#search-query-syntax) above, and the `search.included` / `search.excluded` patterns in your config file
 
-Very large result sets are capped at the first 2000 files, which the dialog tells you about — narrow the query if you hit that.
+Very large result sets are capped at 2000 files (the 2000 most recently modified), which the dialog tells you about — narrow the query if you hit that.
 
 **If the results window can't be shown** — an unusable zenity build, no display — Coral falls back to opening the list of matching paths in VS Code and, when the dialog fails to start at all, keeps the search terminal open with the reason. A search never ends in silence.
 
