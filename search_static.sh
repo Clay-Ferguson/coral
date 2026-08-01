@@ -48,11 +48,20 @@ fi
 echo "Coral Search (Static)"
 echo "Folder: $SEARCH_DIR"
 echo ""
-echo 'Query syntax: "quoted phrases" match literally, space or AND requires all'
-echo 'terms, OR matches any term, NOT (or -term) excludes. Unquoted terms are'
-echo 'regular expressions.'
+echo 'Query Syntax:'
+echo '  * Unquoted terms are regular expressions'
+echo '  * "quoted phrases" match literally (not as REGEX)'
+echo '  * Space or AND requires all terms'
+echo '  * OR matches any term'
+echo '  * NOT (or -term) excludes'
+echo '  * Parenthetical groupings of AND/OR/NOT are allowed'
 echo ""
-read -r -p "Search for: " QUERY
+echo 'REGEX Match Tips:'
+echo '  * Whole word ABC: \bABC\b'
+echo '  * From 0 up to 10 characters: .{0,10}'
+echo '  * Any string of chars: .*'
+echo ""
+read -r -p "Enter Search: " QUERY
 
 if [ -z "$QUERY" ]; then
     echo "No search string entered."
