@@ -4,13 +4,14 @@ Static search functionality for the Coral Nautilus extension.
 
 Where the interactive search (search_ugrep.py) hands the user over to ugrep's
 live TUI, this module runs a one-shot search: a terminal opens and prompts for
-a search string, ugrep collects the full paths of the matching files, the paths
-are written to a timestamped text file under /tmp, and that file is opened in
-VS Code.
+a search string, ugrep collects the full paths of the matching files, and the
+results are presented in a scrollable zenity list the user can click through to
+open files.
 
 All of the terminal-side work happens in the companion `search_static.sh`
 script that lives next to this module, so more prompts/options can be added
-there without touching the extension.
+there without touching the extension. That script in turn hands the results to
+`search_results_dialog.sh`, which owns the zenity dialog.
 """
 
 import os
@@ -22,7 +23,7 @@ from search_ugrep import SearchHandler
 
 
 class StaticSearchHandler(SearchHandler):
-    """Runs a one-shot ugrep search and opens the file list in VS Code."""
+    """Runs a one-shot ugrep search and shows the hits in a zenity list."""
 
     SCRIPT_NAME = 'search_static.sh'
 
@@ -43,15 +44,17 @@ class StaticSearchHandler(SearchHandler):
 
     def search_folder_static(self, menu, folder):
         """
-        Prompt for a search string in a terminal and open the results in VS Code.
+        Prompt for a search string in a terminal and list the hits in zenity.
 
         Opens a gnome-terminal running `search_static.sh`, which asks the user
         for a search string and then runs `ugrep -r -i -l -% --files` over the
-        selected folder. The matching file paths are written to
-        /tmp/coral-search-YYYY-MM-DD--HH-MM-SS.txt and that file is opened in
-        VS Code. As with the interactive search, -% enables Boolean query mode
-        ("quoted phrases" are literal, space/AND requires all terms, OR matches
-        any, NOT/- excludes) and --files applies the query at whole-file scope.
+        selected folder. As with the interactive search, -% enables Boolean
+        query mode ("quoted phrases" are literal, space/AND requires all terms,
+        OR matches any, NOT/- excludes) and --files applies the query at
+        whole-file scope. The matching paths are then displayed by
+        `search_results_dialog.sh` in a scrollable zenity list that stays open
+        while the user opens files from it; the terminal closes itself once the
+        search finishes.
 
         Args:
             menu (Nautilus.MenuItem): The menu item that triggered this action (unused).
@@ -60,6 +63,7 @@ class StaticSearchHandler(SearchHandler):
         Requirements:
             - ugrep: For the search itself (sudo apt install ugrep)
             - gnome-terminal: To host the prompt
+            - zenity: For the results list
             - pdftotext (optional, from poppler-utils): For PDF content search
         """
         if not folder.get_uri().startswith('file://'):

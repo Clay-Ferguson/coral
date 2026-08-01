@@ -55,13 +55,19 @@ The search launches in **Boolean query mode** (ugrep's `-%` option), which suppo
 ## 🔍 Search (Static) (Menu Item)
 **Available:** On folders and empty space (searches current directory)
 
-A one-shot version of the search above, for when you want the *list of matching files* as a document you can keep, scroll, and click through rather than a live TUI session.
+A one-shot version of the search above, for when you want a plain list of *which files* matched, in a window you can keep open and click through.
 
-A terminal opens and prompts you for a search string. Press Enter and Coral runs the same ugrep search (same Boolean query syntax, same config exclusions, same PDF support), writes the full path of every matching file to a timestamped file in `/tmp` — `/tmp/coral-search-YYYY-MM-DD--HH-MM-SS.txt` — and opens that file in VS Code. From there you can Ctrl-click any path to jump straight to the file.
+A terminal opens and prompts you for a search string. Press Enter and Coral runs the same ugrep search (same Boolean query syntax, same config exclusions, same PDF support), then the terminal closes itself and the matching files appear in a scrollable dialog.
 
-- **Results as a file:** Every hit is a full path on its own line, so the list can be edited, saved, or fed into other tools
-- **Terminal closes itself:** Once the results are open in VS Code the terminal window goes away; it stays open only to report an error or "no files matched"
+- **The dialog stays open:** Open a file, look at it, come back — the list is still there. It closes when you press **Close** or close the window
+- **Open several at once:** Ctrl-click or Shift-click to select multiple rows, then press **Open**
+- **Opens the right app:** Text-like files open in VS Code; PDFs, images, and other binary formats open in whatever application your desktop uses for them (via `xdg-open`), since VS Code can't display them
+- **Readable paths:** Rows show the path relative to the folder you searched, with the full root shown above the list
 - **Same query syntax and exclusions:** See [Search Query Syntax](#search-query-syntax) above, and the `search.included` / `search.excluded` patterns in your config file
+
+Very large result sets are capped at the first 2000 files, which the dialog tells you about — narrow the query if you hit that.
+
+**If the results window can't be shown** — an unusable zenity build, no display — Coral falls back to opening the list of matching paths in VS Code and, when the dialog fails to start at all, keeps the search terminal open with the reason. A search never ends in silence.
 
 ## UGREP Tips
 

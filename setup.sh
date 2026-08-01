@@ -18,7 +18,8 @@ cp "$SCRIPT_DIR/coral_action.py" "$ACTION_FILE"
 cp "$SCRIPT_DIR/search_ugrep.py" "$ACTIONS_DIR/search_ugrep.py"
 cp "$SCRIPT_DIR/search_static.py" "$ACTIONS_DIR/search_static.py"
 cp "$SCRIPT_DIR/search_static.sh" "$ACTIONS_DIR/search_static.sh"
-chmod +x "$ACTIONS_DIR/search_static.sh"
+cp "$SCRIPT_DIR/search_results_dialog.sh" "$ACTIONS_DIR/search_results_dialog.sh"
+chmod +x "$ACTIONS_DIR/search_static.sh" "$ACTIONS_DIR/search_results_dialog.sh"
 cp "$SCRIPT_DIR/new_markdown.py" "$ACTIONS_DIR/new_markdown.py"
 cp "$SCRIPT_DIR/run_script_for_folder.py" "$ACTIONS_DIR/run_script_for_folder.py"
 cp "$SCRIPT_DIR/run_script.py" "$ACTIONS_DIR/run_script.py"
@@ -32,7 +33,7 @@ chmod +x "$ACTION_FILE"
 
 # Install python3-nautilus if needed
 echo "Installing required dependencies..."
-sudo apt update && sudo apt install -y python3-nautilus python3-yaml ugrep poppler-utils
+sudo apt update && sudo apt install -y python3-nautilus python3-yaml zenity ugrep poppler-utils
 
 # Install bubblewrap if not already installed
 # See example YAML for why we might want to install (and do install) bubblewrap here,
