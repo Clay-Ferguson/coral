@@ -197,15 +197,6 @@ scripts:
     content: |
       code $OPEN_FOLDER
 
-  # Launch VS Code in a secure Firejail sandbox
-  - name: vscode-sandbox
-    content: |
-      firejail --noprofile \
-        --whitelist=~/.vscode \
-        --whitelist=~/.config/Code \
-        --whitelist=$OPEN_FOLDER \
-        code $OPEN_FOLDER
-
   # Open a terminal in the folder
   - name: terminal
     content: |
