@@ -2,7 +2,7 @@
 
 # Create a custom Nautilus action that appears directly in the context menu
 # This uses the newer Nautilus extension system
-# Adds "Open in VS Code" for folders and text files, "Run Script" for .sh files, and "New Markdown" for creating timestamped markdown files
+# Adds "New Markdown", "Copy Full Path", "Run Script" for .sh files, and the YAML-defined Custom Scripts
 
 ACTIONS_DIR="$HOME/.local/share/nautilus-python/extensions"
 ACTION_FILE="$ACTIONS_DIR/coral_action.py"
@@ -15,16 +15,14 @@ mkdir -p "$ACTIONS_DIR"
 # Copy the Python extension from the project directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cp "$SCRIPT_DIR/coral_action.py" "$ACTION_FILE"
-cp "$SCRIPT_DIR/search_ugrep.py" "$ACTIONS_DIR/search_ugrep.py"
-cp "$SCRIPT_DIR/search_static.py" "$ACTIONS_DIR/search_static.py"
-cp "$SCRIPT_DIR/search_static.sh" "$ACTIONS_DIR/search_static.sh"
-cp "$SCRIPT_DIR/search_results_dialog.sh" "$ACTIONS_DIR/search_results_dialog.sh"
-chmod +x "$ACTIONS_DIR/search_static.sh" "$ACTIONS_DIR/search_results_dialog.sh"
 cp "$SCRIPT_DIR/new_markdown.py" "$ACTIONS_DIR/new_markdown.py"
 cp "$SCRIPT_DIR/run_script_for_folder.py" "$ACTIONS_DIR/run_script_for_folder.py"
 cp "$SCRIPT_DIR/run_script.py" "$ACTIONS_DIR/run_script.py"
 
-# Remove stale search modules left behind by older installs
+# Remove stale modules left behind by older installs.
+# NOTE: do NOT delete search_ugrep.py / search_static.py / search_static.sh /
+# search_results_dialog.sh here -- search moved to the SonarEx extension, which
+# installs files with those exact names into this same shared directory.
 rm -f "$ACTIONS_DIR/search_grep.py" "$ACTIONS_DIR/search_ripgrep.py"
 rm -rf "$ACTIONS_DIR/__pycache__"
 
@@ -33,7 +31,7 @@ chmod +x "$ACTION_FILE"
 
 # Install python3-nautilus if needed
 echo "Installing required dependencies..."
-sudo apt update && sudo apt install -y python3-nautilus python3-yaml zenity ugrep poppler-utils
+sudo apt update && sudo apt install -y python3-nautilus python3-yaml zenity
 
 # Install bubblewrap if not already installed
 # See example YAML for why we might want to install (and do install) bubblewrap here,
@@ -55,29 +53,16 @@ if [ ! -f "$CONFIG_FILE" ]; then
     echo "Creating default configuration file..."
     cat > "$CONFIG_FILE" << 'EOF'
 # Coral Nautilus Extension Configuration
+# TIP: Run 'nautilus -q' after editing this file, to make it go into effect
 
-search:
-  # Patterns to include in searches (glob patterns)
-  # If empty or omitted, all files are included (subject to exclusions)
-  # Examples: ["*.md", "*.txt", "*.py"]
-  included:
-    - "*.md"
-    - "*.txt"
-  
-  # Patterns to exclude from searches (glob patterns)
-  # These directories/files will be skipped during recursive search
-  excluded:
-    - "*/node_modules/*"
-    - "*/.git/*"
-    - "*/.venv/*"
-    - "*/__pycache__/*"
-    - "*/venv/*"
-    - "*/.svn/*"
-    - "*/.hg/*"
-    - "*/build/*"
-    - "*/dist/*"
-    - "*/.next/*"
-    - "*/.nuxt/*"
+# Custom scripts appear as menu items when you right-click a folder.
+# Each script runs with $OPEN_FOLDER set to the full path of that folder.
+# See the README for more examples.
+
+scripts:
+  - name: 🔧  Open in VSCode
+    content: |
+      code $OPEN_FOLDER
 EOF
     echo "Default config created at: $CONFIG_FILE"
 else

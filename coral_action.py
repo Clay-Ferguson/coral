@@ -8,8 +8,6 @@ from datetime import datetime
 from gi.repository import Nautilus, GObject, GLib
 
 # Import our handlers
-from search_ugrep import SearchHandler
-from search_static import StaticSearchHandler
 from new_markdown import MarkdownHandler
 from run_script import ScriptRunner
 from run_script_for_folder import OpenFolderHandler
@@ -36,7 +34,6 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
     
     Class Constants:
         VSCODE_PATH (str): Path to the VSCode executable
-        TEXT_FILE_EXTENSIONS (tuple): File extensions considered as text files
         MENU_ICON (str): Unicode character used as visual marker for Coral menu items
     
     Menu Actions Provided:
@@ -45,7 +42,6 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         - Run Script: Executes shell scripts in a new terminal
     """
     VSCODE_PATH = '/usr/bin/code'
-    TEXT_FILE_EXTENSIONS = ('.txt', '.md', '.py', '.js', '.html', '.css', '.json', '.xml', '.yml', '.yaml', '.ini', '.cfg', '.conf')
     CONFIG_FILE = os.path.expanduser('~/.config/coral/coral-config.yaml')
     MENU_ICON = '●  '
     
@@ -59,8 +55,6 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         """
         super().__init__()
         # Initialize the handlers
-        self.search_handler = SearchHandler(self.CONFIG_FILE)
-        self.static_search_handler = StaticSearchHandler(self.CONFIG_FILE, self.VSCODE_PATH)
         self.markdown_handler = MarkdownHandler(self.VSCODE_PATH)
         self.script_runner = ScriptRunner()
         self.open_folder_handler = OpenFolderHandler(self.CONFIG_FILE)
@@ -84,14 +78,8 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         
         Menu Items Added:
             - New Markdown: Always available for any single selection
-            - Search: Available for directories to perform recursive text search
             - Run Script: Available for .sh files
             - Custom Scripts: Available for directories (configured via YAML)
-        
-        File Type Detection:
-            Uses dual detection strategy:
-            1. MIME type analysis via mimetypes.guess_type()
-            2. File extension matching against TEXT_FILE_EXTENSIONS
         """
         if len(files) != 1:
             return []
@@ -99,24 +87,6 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         file = files[0]
         items = []
         
-        # Add Search for directories (first items)
-        if file.is_directory():
-            search_item = Nautilus.MenuItem(
-                name='AddNautilusMenuItems::search',
-                label='🔍  Search (Interactive)',
-                tip='Interactive search in a terminal'
-            )
-            search_item.connect('activate', self.search_folder, file)
-            items.append(search_item)
-
-            static_search_item = Nautilus.MenuItem(
-                name='AddNautilusMenuItems::search_static',
-                label='🔍  Search (Static)',
-                tip='Search once and open the list of matching files in VSCode'
-            )
-            static_search_item.connect('activate', self.search_folder_static, file)
-            items.append(static_search_item)
-
         # Always add New Markdown option (works for any selection)
         new_markdown_item = Nautilus.MenuItem(
             name='AddNautilusMenuItems::new_markdown_from_selection',
@@ -187,27 +157,9 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         
         Menu Items Added:
             - New Markdown: Creates a new timestamped markdown file in current folder
-            - Search: Recursively search for text in the current folder
         """
         items = []
         
-        # Search for current folder (first items)
-        search_item = Nautilus.MenuItem(
-            name='AddNautilusMenuItems::search_current',
-            label='🔍  Search (Interactive)',
-            tip='Interactive search in a terminal'
-        )
-        search_item.connect('activate', self.search_folder, current_folder)
-        items.append(search_item)
-
-        static_search_item = Nautilus.MenuItem(
-            name='AddNautilusMenuItems::search_static_current',
-            label='🔍  Search (Static)',
-            tip='Search once and open the list of matching files in VSCode'
-        )
-        static_search_item.connect('activate', self.search_folder_static, current_folder)
-        items.append(static_search_item)
-
         # New Markdown file option
         new_markdown_item = Nautilus.MenuItem(
             name='AddNautilusMenuItems::new_markdown',
@@ -227,24 +179,6 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         items.append(config_item)
         
         return items
-
-    def search_folder(self, menu, folder):
-        """
-        Delegate to the search handler for interactive folder search.
-
-        This is a wrapper method that maintains the existing menu interface
-        while delegating the actual search functionality to the SearchHandler.
-        """
-        self.search_handler.search_folder(menu, folder)
-
-    def search_folder_static(self, menu, folder):
-        """
-        Delegate to the static search handler for one-shot folder search.
-
-        Prompts for a search string in a terminal, writes the matching file
-        paths to a timestamped file in /tmp, and opens it in VSCode.
-        """
-        self.static_search_handler.search_folder_static(menu, folder)
 
     def new_markdown_from_selection(self, menu, selected_item):
         """
