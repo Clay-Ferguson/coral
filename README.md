@@ -6,23 +6,13 @@
 
 A developer-focused extension for Nautilus file manager that adds convenient context menu actions to streamline your workflow. Coral enhances Nautilus with productivity tools specifically designed for software developers.
 
-Coral adds menu items to the Nautilus right-click popup menu as shown in the image below: New Markdown, Copy Full Path, Run Script, and Custom Scripts. The Coral Nautilus extension adds the ability to create a new markdown file in any folder using a single mouse click (a nice productivity aid), copy a file or folder's full path to the clipboard, run shell scripts with a single click, and run custom YAML-defined scripts against folders. All of these tasks are very common for developers, and it's nice to have these embedded on a menu for a single click right inside Nautilus. 
+Coral adds menu items to the Nautilus right-click popup menu as shown in the image below: Copy Full Path, Run Script, and Custom Scripts. The Coral Nautilus extension adds the ability to copy a file or folder's full path to the clipboard, run shell scripts with a single click, and run custom YAML-defined scripts against folders. All of these tasks are very common for developers, and it's nice to have these embedded on a menu for a single click right inside Nautilus. 
 
 > **Looking for search?** Coral's recursive content search now lives in its own Nautilus extension, [SonarEx](../sonarex). Install it alongside Coral to get the **Search (Interactive)** and **Search (Static)** menu items back.
 
 Coral seamlessly integrates with Nautilus to provide quick access to common developer tasks directly from the file manager's context menu. No more switching between applications or remembering complex terminal commands - everything you need is just a right-click away.
 
 ![Menu Screenshot](menu.png)
-
-## 🆕 New Markdown (Menu Item)
-**Available:** Everywhere (right-click on files, folders, or empty space)
-
-Creates a new timestamped Markdown file and automatically opens it in VS Code. Perfect for quick note-taking, documentation, or capturing ideas on the fly.
-
-- **Smart placement:** File is created in the most logical location based on where you right-click
-- **Friendly prompt:** Uses `zenity` to let you confirm or customize the filename before creation
-- **Automatic timestamping:** Files are named with the current date and time (YYYY-MM-DD--HH-MM-SS format)
-- **Instant editing:** Opens immediately in VS Code for seamless workflow
 
 ## 📋 Copy Full Path (Menu Item)
 **Available:** On files and folders

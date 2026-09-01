@@ -4,11 +4,9 @@ import os
 import urllib.parse
 import subprocess
 import shutil
-from datetime import datetime
 from gi.repository import Nautilus, GObject, GLib
 
 # Import our handlers
-from new_markdown import MarkdownHandler
 from run_script import ScriptRunner
 from run_script_for_folder import OpenFolderHandler
 
@@ -25,8 +23,8 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
     A Nautilus file manager extension that adds developer-focused context menu actions.
     
     This extension provides convenient right-click menu options for developers working
-    with files and folders in the GNOME Nautilus file manager. It supports creating
-    markdown files, running custom scripts on folders, and executing shell scripts.
+    with files and folders in the GNOME Nautilus file manager. It supports copying full
+    paths, running custom scripts on folders, and executing shell scripts.
     
     Inherits from:
         GObject.GObject: Base class for GObject-based objects
@@ -37,7 +35,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         MENU_ICON (str): Unicode character used as visual marker for Coral menu items
     
     Menu Actions Provided:
-        - New Markdown: Creates timestamped markdown files
+        - Copy Full Path: Copies the selected item's full path to the clipboard
         - Custom Scripts: Run user-defined scripts on folders (configured via YAML)
         - Run Script: Executes shell scripts in a new terminal
     """
@@ -55,7 +53,6 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         """
         super().__init__()
         # Initialize the handlers
-        self.markdown_handler = MarkdownHandler(self.VSCODE_PATH)
         self.script_runner = ScriptRunner()
         self.open_folder_handler = OpenFolderHandler(self.CONFIG_FILE)
 
@@ -77,7 +74,7 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
                   Returns empty list if multiple files are selected.
         
         Menu Items Added:
-            - New Markdown: Always available for any single selection
+            - Copy Full Path: Always available for any single selection
             - Run Script: Available for .sh files
             - Custom Scripts: Available for directories (configured via YAML)
         """
@@ -87,15 +84,6 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         file = files[0]
         items = []
         
-        # Always add New Markdown option (works for any selection)
-        new_markdown_item = Nautilus.MenuItem(
-            name='AddNautilusMenuItems::new_markdown_from_selection',
-            label='✏️  New Markdown',
-            tip='Create a new timestamped markdown file and open in VSCode'
-        )
-        new_markdown_item.connect('activate', self.new_markdown_from_selection, file)
-        items.append(new_markdown_item)
-
         copy_full_path_item = Nautilus.MenuItem(
             name='AddNautilusMenuItems::copy_full_path',
             label='📋  Copy Full Path',
@@ -156,18 +144,9 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
             list: List of Nautilus.MenuItem objects to display in the context menu.
         
         Menu Items Added:
-            - New Markdown: Creates a new timestamped markdown file in current folder
+            - Open Coral Configs: Opens the Coral YAML config file in VSCode
         """
         items = []
-        
-        # New Markdown file option
-        new_markdown_item = Nautilus.MenuItem(
-            name='AddNautilusMenuItems::new_markdown',
-            label='✏️  New Markdown',
-            tip='Create a new timestamped markdown file and open in VSCode'
-        )
-        new_markdown_item.connect('activate', self.new_markdown, current_folder)
-        items.append(new_markdown_item)
         
         # Open Coral Configs option
         config_item = Nautilus.MenuItem(
@@ -179,24 +158,6 @@ class AddNautilusMenuItems(GObject.GObject, Nautilus.MenuProvider):
         items.append(config_item)
         
         return items
-
-    def new_markdown_from_selection(self, menu, selected_item):
-        """
-        Delegate to the markdown handler for creating markdown from selection.
-        
-        This is a wrapper method that maintains the existing menu interface
-        while delegating the actual markdown creation to the MarkdownHandler.
-        """
-        self.markdown_handler.new_markdown_from_selection(menu, selected_item)
-
-    def new_markdown(self, menu, current_folder):
-        """
-        Delegate to the markdown handler for creating markdown in current folder.
-        
-        This is a wrapper method that maintains the existing menu interface
-        while delegating the actual markdown creation to the MarkdownHandler.
-        """
-        self.markdown_handler.new_markdown(menu, current_folder)
 
     def run_script(self, menu, file):
         """

@@ -2,7 +2,7 @@
 
 # Create a custom Nautilus action that appears directly in the context menu
 # This uses the newer Nautilus extension system
-# Adds "New Markdown", "Copy Full Path", "Run Script" for .sh files, and the YAML-defined Custom Scripts
+# Adds "Copy Full Path", "Run Script" for .sh files, and the YAML-defined Custom Scripts
 
 ACTIONS_DIR="$HOME/.local/share/nautilus-python/extensions"
 ACTION_FILE="$ACTIONS_DIR/coral_action.py"
@@ -15,7 +15,6 @@ mkdir -p "$ACTIONS_DIR"
 # Copy the Python extension from the project directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cp "$SCRIPT_DIR/coral_action.py" "$ACTION_FILE"
-cp "$SCRIPT_DIR/new_markdown.py" "$ACTIONS_DIR/new_markdown.py"
 cp "$SCRIPT_DIR/run_script_for_folder.py" "$ACTIONS_DIR/run_script_for_folder.py"
 cp "$SCRIPT_DIR/run_script.py" "$ACTIONS_DIR/run_script.py"
 
@@ -23,7 +22,7 @@ cp "$SCRIPT_DIR/run_script.py" "$ACTIONS_DIR/run_script.py"
 # NOTE: do NOT delete search_ugrep.py / search_static.py / search_static.sh /
 # search_results_dialog.sh here -- search moved to the SonarEx extension, which
 # installs files with those exact names into this same shared directory.
-rm -f "$ACTIONS_DIR/search_grep.py" "$ACTIONS_DIR/search_ripgrep.py"
+rm -f "$ACTIONS_DIR/search_grep.py" "$ACTIONS_DIR/search_ripgrep.py" "$ACTIONS_DIR/new_markdown.py"
 rm -rf "$ACTIONS_DIR/__pycache__"
 
 # Make sure it's executable
