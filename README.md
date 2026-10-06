@@ -1,3 +1,6 @@
+---
+id: 36F7385CA
+---
 # Coral (Extends Nautilus Context Menu)
 
 ![Python](https://img.shields.io/badge/python-3.x-blue.svg)
