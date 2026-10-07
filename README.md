@@ -1,7 +1,11 @@
----
-id: 36F7385CA
----
 # Coral (Extends Nautilus Context Menu)
+
+> ## ⚠️ Deprecated
+>
+> The functionality of this app has been merged into the `start-menu` project
+> and therefore this app is no longer being actively maintained. However it's 
+> still a good project to show the purest form of an app that embeds some
+> menu items onto the Nautilus File Explorer context menu.
 
 ![Python](https://img.shields.io/badge/python-3.x-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-linux-lightgrey.svg)
